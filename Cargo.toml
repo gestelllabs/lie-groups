@@ -1,0 +1,29 @@
+[package]
+name = "lie-groups"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.75"
+authors = ["Gestell Labs LLC"]
+license = "BSD-3-Clause"
+description = "Lie groups and Lie algebras for computational mathematics"
+repository = "https://github.com/gestelllabs/lie-groups"
+keywords = ["lie-group", "lie-algebra", "rotation", "representation-theory", "baker-campbell-hausdorff"]
+categories = ["mathematics", "science"]
+
+[features]
+default = ["rand"]
+rand = ["dep:rand", "dep:rand_distr"]
+proptest = ["dep:proptest"]
+
+[dependencies]
+nalgebra = "0.33"
+ndarray = "0.16"
+num-complex = "0.4"
+approx = "0.5"
+rand = { version = "0.8", optional = true }
+rand_distr = { version = "0.4", optional = true }
+proptest = { version = "1", optional = true }
+
+[dev-dependencies]
+rand = "0.8"
+rand_distr = "0.4"
