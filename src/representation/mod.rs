@@ -197,7 +197,7 @@ pub fn character(spin: Spin, angle: f64) -> f64 {
 #[must_use]
 pub fn character_su2(spin: Spin, g: &SU2) -> f64 {
     // Convert to quaternion and get rotation angle
-    let matrix_array = g.to_matrix_array();
+    let matrix_array = g.to_matrix();
     let quat = UnitQuaternion::from_matrix(matrix_array);
     let (_axis, angle) = quat.to_axis_angle();
 

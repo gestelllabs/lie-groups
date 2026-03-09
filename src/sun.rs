@@ -510,6 +510,12 @@ impl<const N: usize> SUN<N> {
         }
     }
 
+    /// Trace of the matrix: Tr(U) = Σᵢ Uᵢᵢ
+    #[must_use]
+    pub fn trace(&self) -> Complex64 {
+        (0..N).map(|i| self.matrix[[i, i]]).sum()
+    }
+
     /// Verify unitarity: ||U†U - I|| < ε
     ///
     /// # Arguments

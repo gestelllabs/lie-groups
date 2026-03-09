@@ -343,6 +343,38 @@ impl SO3 {
         Self { matrix }
     }
 
+    /// Trace of the rotation matrix: Tr(R) = 1 + 2cos(θ)
+    #[must_use]
+    pub fn trace(&self) -> f64 {
+        self.matrix.trace()
+    }
+
+    /// Convert to 3×3 array format
+    #[must_use]
+    pub fn to_matrix(&self) -> [[f64; 3]; 3] {
+        let m = &self.matrix;
+        [
+            [m[(0, 0)], m[(0, 1)], m[(0, 2)]],
+            [m[(1, 0)], m[(1, 1)], m[(1, 2)]],
+            [m[(2, 0)], m[(2, 1)], m[(2, 2)]],
+        ]
+    }
+
+    /// Create from 3×3 array format
+    ///
+    /// # Panics
+    ///
+    /// Does not verify orthogonality. Use `verify_orthogonality()` after construction.
+    #[must_use]
+    pub fn from_matrix(arr: [[f64; 3]; 3]) -> Self {
+        Self {
+            matrix: Matrix3::new(
+                arr[0][0], arr[0][1], arr[0][2], arr[1][0], arr[1][1], arr[1][2], arr[2][0],
+                arr[2][1], arr[2][2],
+            ),
+        }
+    }
+
     /// Verify orthogonality: R^T R = I
     #[must_use]
     pub fn verify_orthogonality(&self, tolerance: f64) -> bool {

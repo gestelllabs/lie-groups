@@ -663,9 +663,9 @@ impl SU2 {
         diff_norm < tolerance
     }
 
-    /// Convert to 2×2 array format (for quaternion compatibility)
+    /// Convert to 2×2 array format
     #[must_use]
-    pub fn to_matrix_array(&self) -> [[num_complex::Complex64; 2]; 2] {
+    pub fn to_matrix(&self) -> [[num_complex::Complex64; 2]; 2] {
         [
             [
                 num_complex::Complex64::new(self.matrix[[0, 0]].re, self.matrix[[0, 0]].im),
@@ -678,9 +678,9 @@ impl SU2 {
         ]
     }
 
-    /// Create from 2×2 array format (for quaternion compatibility)
+    /// Create from 2×2 array format
     #[must_use]
-    pub fn from_matrix_array(arr: [[num_complex::Complex64; 2]; 2]) -> Self {
+    pub fn from_matrix(arr: [[num_complex::Complex64; 2]; 2]) -> Self {
         let mut matrix = Array2::zeros((2, 2));
         matrix[[0, 0]] = Complex64::new(arr[0][0].re, arr[0][0].im);
         matrix[[0, 1]] = Complex64::new(arr[0][1].re, arr[0][1].im);
