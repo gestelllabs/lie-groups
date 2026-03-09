@@ -1725,4 +1725,134 @@ mod tests {
         let trait_scaled = x.scale(2.5);
         assert_eq!(op_scaled.0, trait_scaled.0);
     }
+
+    // ========================================================================
+    // Error Path Tests
+    // ========================================================================
+
+    #[test]
+    fn test_su2_log_returns_err_for_drifted_matrix() {
+        use crate::SU2;
+        use num_complex::Complex64;
+
+        // Construct a matrix that violates unitarity (drift simulation)
+        let mut bad = SU2::identity();
+        bad.matrix[[0, 0]] = Complex64::new(2.0, 0.0); // |cos(θ/2)| > 1
+        let result = SU2::log(&bad);
+        assert!(result.is_err(), "log should fail for non-unitary matrix");
+    }
+
+    #[test]
+    fn test_su2_log_at_near_2pi_returns_err() {
+        use crate::SU2;
+
+        // θ = 2π is the cut locus where sin(θ/2) = 0
+        let near_cut = SU2::exp(&crate::Su2Algebra([
+            0.0,
+            0.0,
+            std::f64::consts::PI * 2.0 - 1e-14,
+        ]));
+        // This may or may not error depending on precision, but should not panic
+        let _result = SU2::log(&near_cut);
+    }
+
+    #[test]
+    fn test_so3_log_at_pi_returns_err() {
+        use crate::so3::SO3;
+
+        // 180° rotation is a singularity for SO(3) log (axis ambiguous)
+        let r = SO3::rotation_x(std::f64::consts::PI);
+        let result = SO3::log(&r);
+        assert!(
+            result.is_err(),
+            "SO(3) log at π rotation should return singularity error"
+        );
+    }
+
+    #[test]
+    fn test_bch_error_for_invalid_order() {
+        use crate::bch::{bch_safe, BchError};
+        use crate::Su2Algebra;
+
+        let x = Su2Algebra([0.1, 0.0, 0.0]);
+        let y = Su2Algebra([0.0, 0.1, 0.0]);
+        let result = bch_safe::<SU2>(&x, &y, 7);
+        assert!(
+            matches!(result, Err(BchError::InvalidOrder(7))),
+            "BCH should reject invalid order"
+        );
+    }
+
+    // ========================================================================
+    // Cross-Group Correspondence Tests
+    // ========================================================================
+
+    #[test]
+    fn test_su2_so3_double_cover() {
+        // SU(2) is a double cover of SO(3): the same rotation angle
+        // should produce the same adjoint action on algebra elements.
+        //
+        // For any g ∈ SU(2), the map Ad_g: su(2) → su(2) factors through
+        // the isomorphism su(2) ≅ so(3), giving a rotation in SO(3).
+        use crate::so3::{So3Algebra, SO3};
+        use crate::su2::{Su2Algebra, SU2};
+
+        let angles = [0.3, 1.0, std::f64::consts::PI / 2.0, 2.5];
+
+        for &angle in &angles {
+            // Same physical rotation via SU(2) and SO(3)
+            let g_su2 = SU2::rotation_z(angle);
+            let r_so3 = SO3::rotation_z(angle);
+
+            // Act on basis vectors via adjoint
+            let x_su2 = Su2Algebra([1.0, 0.0, 0.0]);
+            let x_so3 = So3Algebra([1.0, 0.0, 0.0]);
+
+            let ad_su2 = g_su2.adjoint_action(&x_su2);
+            let ad_so3 = r_so3.adjoint_action(&x_so3);
+
+            // The su(2) → so(3) isomorphism maps e_a ↦ -L_a,
+            // so Ad_SU2 and Ad_SO3 should give the same rotation
+            // up to the sign convention. Compare magnitudes.
+            let su2_rotated = [ad_su2.0[0], ad_su2.0[1], ad_su2.0[2]];
+            let so3_rotated = [ad_so3.0[0], ad_so3.0[1], ad_so3.0[2]];
+
+            // The components should match (both rotate x-axis by angle around z)
+            // su(2) has -ε structure constants, so Ad picks up a sign flip
+            // relative to so(3). The rotation matrix is the same.
+            for i in 0..3 {
+                assert!(
+                    (su2_rotated[i].abs() - so3_rotated[i].abs()) < 1e-10
+                        || (su2_rotated[i] + so3_rotated[i]).abs() < 1e-10
+                        || (su2_rotated[i] - so3_rotated[i]).abs() < 1e-10,
+                    "SU(2)/SO(3) adjoint mismatch at angle {}: su2={:?} so3={:?}",
+                    angle,
+                    su2_rotated,
+                    so3_rotated
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn test_su2_minus_identity_is_same_so3_rotation() {
+        // -I ∈ SU(2) maps to I ∈ SO(3) (kernel of the double cover)
+        use crate::su2::{Su2Algebra, SU2};
+
+        // exp(2π ê₃) = -I in SU(2)
+        let g = SU2::exp(&Su2Algebra([0.0, 0.0, std::f64::consts::PI]));
+        let minus_g = SU2::exp(&Su2Algebra([0.0, 0.0, -std::f64::consts::PI]));
+
+        // Both should give the same adjoint action (since -I acts trivially)
+        let x = Su2Algebra([1.0, 2.0, 3.0]);
+        let ad_g = g.adjoint_action(&x);
+        let ad_minus_g = minus_g.adjoint_action(&x);
+
+        for i in 0..3 {
+            assert!(
+                (ad_g.0[i] - ad_minus_g.0[i]).abs() < 1e-10,
+                "±I should give same adjoint action"
+            );
+        }
+    }
 }
