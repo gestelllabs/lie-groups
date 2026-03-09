@@ -103,8 +103,6 @@
 //! | Fixed-size array | Size is known at compile time | `Plaquette([NodeIndex; 4])` |
 //! | Builder pattern | Invariant built incrementally | Path with consecutive edges |
 
-use num_complex::Complex;
-
 // ============================================================================
 // Sealed Trait Pattern for Marker Traits
 // ============================================================================
@@ -401,23 +399,6 @@ pub trait LieAlgebra: Clone + Sized {
     /// checks with `Self::DIM` for now.
     const DIM: usize;
 
-    /// Dimension of the Lie algebra (dim 𝔤).
-    ///
-    /// This is the dimension as a real vector space:
-    /// - u(1): 1
-    /// - su(2): 3
-    /// - su(3): 8
-    /// - so(3): 3
-    ///
-    /// # Note
-    ///
-    /// Prefer using [`Self::DIM`] for compile-time checks. This method
-    /// exists for backward compatibility and dynamic dispatch scenarios.
-    #[must_use]
-    fn dim() -> usize {
-        Self::DIM
-    }
-
     /// Zero element (additive identity) 0 ∈ 𝔤.
     ///
     /// Satisfies: `v.add(&Self::zero()) == v` for all v ∈ 𝔤.
@@ -476,7 +457,7 @@ pub trait LieAlgebra: Clone + Sized {
     ///
     /// # Panics
     ///
-    /// If `i >= Self::dim()`.
+    /// If `i >= Self::DIM`.
     ///
     /// # Example
     ///
@@ -500,11 +481,11 @@ pub trait LieAlgebra: Clone + Sized {
     ///
     /// # Parameters
     ///
-    /// - `components`: Slice of length `Self::dim()`
+    /// - `components`: Slice of length `Self::DIM`
     ///
     /// # Panics
     ///
-    /// If `components.len() != Self::dim()`.
+    /// If `components.len() != Self::DIM`.
     ///
     /// # Example
     ///
@@ -527,7 +508,7 @@ pub trait LieAlgebra: Clone + Sized {
     ///
     /// # Returns
     ///
-    /// Vector of length `Self::dim()` containing the basis coordinates.
+    /// Vector of length `Self::DIM` containing the basis coordinates.
     ///
     /// # Example
     ///
@@ -675,35 +656,19 @@ pub trait LieAlgebra: Clone + Sized {
 pub trait LieGroup: Clone + Sized {
     /// Matrix dimension in the fundamental representation.
     ///
-    /// For matrix Lie groups, this is the size of the matrices:
-    /// - U(1): `DIM = 1` (complex numbers as 1×1 matrices)
-    /// - SU(2): `DIM = 2` (2×2 unitary matrices)
-    /// - SU(3): `DIM = 3` (3×3 unitary matrices)
-    /// - SO(3): `DIM = 3` (3×3 orthogonal matrices)
+    /// For matrix Lie groups, this is the size of the N×N matrices:
+    /// - U(1): `MATRIX_DIM = 1` (complex numbers as 1×1 matrices)
+    /// - SU(2): `MATRIX_DIM = 2` (2×2 unitary matrices)
+    /// - SU(3): `MATRIX_DIM = 3` (3×3 unitary matrices)
+    /// - SO(3): `MATRIX_DIM = 3` (3×3 orthogonal matrices)
     ///
-    /// # Compile-Time Dimension Safety
+    /// # Distinction from `LieAlgebra::DIM`
     ///
-    /// This enables the compiler to verify dimension compatibility:
-    ///
-    /// ```ignore
-    /// // ✅ Compiles: Same dimension
-    /// fn compatible<G: LieGroup<DIM = 2>>() {
-    ///     let g1 = SU2::identity();
-    ///     // All operations have compatible dimensions
-    /// }
-    ///
-    /// // ❌ Compile error: Dimension mismatch
-    /// fn incompatible<G1: LieGroup<DIM = 2>, G2: LieGroup<DIM = 3>>() {
-    ///     // Can't mix 2×2 and 3×3 operations
-    /// }
-    /// ```
-    ///
-    /// # Note
-    ///
-    /// This is **not** the dimension of the Lie algebra:
-    /// - dim(SU(2)) = 2 (matrix size)
-    /// - dim(su(2)) = 3 (algebra dimension)
-    const DIM: usize;
+    /// `MATRIX_DIM` is the matrix size N, while `LieAlgebra::DIM` is the
+    /// algebra dimension (number of independent generators):
+    /// - SU(2): `MATRIX_DIM = 2`, `Algebra::DIM = 3`
+    /// - SU(3): `MATRIX_DIM = 3`, `Algebra::DIM = 8`
+    const MATRIX_DIM: usize;
 
     /// Associated Lie algebra type.
     ///
@@ -1144,87 +1109,6 @@ pub trait LieGroup: Clone + Sized {
     /// - [`LogError`](crate::LogError) - Error types for logarithm failures
     fn log(&self) -> crate::error::LogResult<Self::Algebra>;
 
-    /// Dimension of the fundamental representation.
-    ///
-    /// For matrix Lie groups, this is the size of the matrices:
-    /// - U(1): 1 (complex numbers as 1×1 matrices)
-    /// - SU(2): 2 (2×2 unitary matrices with det=1)
-    /// - SU(3): 3 (3×3 unitary matrices with det=1)
-    /// - SO(3): 3 (3×3 orthogonal matrices with det=1)
-    ///
-    /// **Note**: This is different from the dimension of the Lie algebra!
-    /// - dim(SU(2)) = 2 (matrix size)
-    /// - dim(su(2)) = 3 (algebra dimension)
-    ///
-    /// # Relationship to `DIM` Const
-    ///
-    /// This method returns the same value as the `DIM` associated constant,
-    /// but is available at runtime. Prefer using `G::DIM` for compile-time
-    /// dimension checking when possible.
-    ///
-    /// # Uses
-    ///
-    /// - Computing Yang-Mills action: S = Σ (dim - Re Tr(F))
-    /// - Normalizing traces and invariants
-    /// - Checking unitarity constraints
-    ///
-    /// # Examples
-    ///
-    /// ```ignore
-    /// use lie_groups::{LieGroup, SU2, U1};
-    ///
-    /// assert_eq!(SU2::dim(), 2);
-    /// assert_eq!(SU2::DIM, 2);  // Same value, compile-time
-    /// assert_eq!(U1::dim(), 1);
-    /// ```
-    #[must_use]
-    fn dim() -> usize {
-        Self::DIM // Default implementation
-    }
-
-    /// Trace in the fundamental representation.
-    ///
-    /// For matrix groups, computes Tr(M) = Σᵢ Mᵢᵢ (sum of diagonal elements).
-    ///
-    /// # Mathematical Properties
-    ///
-    /// For unitary matrices U:
-    /// - Tr(U) is complex with |Tr(U)| ≤ dim
-    /// - Tr(I) = dim (identity has maximal trace)
-    /// - Tr(U†) = Tr(U)* (trace of adjoint is complex conjugate)
-    /// - Tr(UV) = Tr(VU) (cyclicity)
-    ///
-    /// # Physical Significance
-    ///
-    /// In Yang-Mills theory, the action uses traces of field strength:
-    /// ```text
-    /// S = -1/(4g²) ∫ Tr(F_μν F^μν) d⁴x
-    /// ```
-    ///
-    /// On the lattice:
-    /// ```text
-    /// S = β Σ_p (dim - Re Tr(U_p))
-    /// ```
-    /// where `U_p` is the plaquette holonomy.
-    ///
-    /// # Examples
-    ///
-    /// ```ignore
-    /// use lie_groups::{LieGroup, SU2};
-    /// use num_complex::Complex;
-    ///
-    /// let identity = SU2::identity();
-    /// let tr = identity.trace();
-    /// assert!((tr - Complex::new(2.0, 0.0)).norm() < 1e-10);  // Tr(I₂) = 2
-    ///
-    /// let rotation = SU2::rotation_x(std::f64::consts::PI);
-    /// let tr_rot = rotation.trace();
-    /// // Rotation by π has Tr = 0
-    /// assert!(tr_rot.norm() < 1e-10);
-    /// ```
-    #[must_use]
-    fn trace(&self) -> Complex<f64>;
-
     /// Trace of the identity element
     ///
     /// For SU(N), SO(N), and related matrix groups, the identity matrix I has trace N.
@@ -1242,7 +1126,7 @@ pub trait LieGroup: Clone + Sized {
     /// ```
     #[must_use]
     fn trace_identity() -> f64 {
-        Self::DIM as f64
+        Self::MATRIX_DIM as f64
     }
 
     /// Project element back onto the group manifold using Gram-Schmidt orthogonalization.
@@ -1396,7 +1280,7 @@ mod tests {
     }
 
     impl LieGroup for U1 {
-        const DIM: usize = 1;
+        const MATRIX_DIM: usize = 1;
 
         type Algebra = U1Algebra;
 
@@ -1442,15 +1326,6 @@ mod tests {
         fn log(&self) -> crate::error::LogResult<Self::Algebra> {
             // For U(1), log(e^{iθ}) = iθ
             Ok(U1Algebra { value: self.angle })
-        }
-
-        fn dim() -> usize {
-            1 // U(1) is 1-dimensional (complex numbers as 1×1 matrices)
-        }
-
-        fn trace(&self) -> Complex<f64> {
-            // Trace of e^(iθ) viewed as 1×1 matrix
-            Complex::new(self.angle.cos(), self.angle.sin())
         }
     }
 
@@ -1521,23 +1396,8 @@ mod tests {
     }
 
     #[test]
-    fn test_dimension() {
-        assert_eq!(U1::dim(), 1);
-    }
-
-    #[test]
-    fn test_trace() {
-        // Tr(identity) = dim
-        let e = U1::identity();
-        let tr_e = e.trace();
-        assert!((tr_e - Complex::new(1.0, 0.0)).norm() < 1e-10);
-
-        // Tr(e^(iπ)) = e^(iπ) = -1
-        let g = U1 {
-            angle: std::f64::consts::PI,
-        };
-        let tr_g = g.trace();
-        assert!((tr_g - Complex::new(-1.0, 0.0)).norm() < 1e-10);
+    fn test_matrix_dim() {
+        assert_eq!(U1::MATRIX_DIM, 1);
     }
 
     #[test]
@@ -1580,12 +1440,8 @@ mod tests {
     }
 
     #[test]
-    fn test_const_dim_available_at_compile_time() {
-        // Verify that DIM const is accessible
-        assert_eq!(U1::DIM, 1);
-
-        // Verify dim() method returns same value
-        assert_eq!(U1::dim(), U1::DIM);
+    fn test_matrix_dim_available_at_compile_time() {
+        assert_eq!(U1::MATRIX_DIM, 1);
     }
 
     // Note: Associated const equality (e.g., `LieGroup<DIM = 1>`) is not yet stable

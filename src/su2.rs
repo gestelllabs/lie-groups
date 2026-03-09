@@ -900,7 +900,7 @@ impl fmt::Display for SU2 {
 /// - Associativity: Follows from matrix multiplication
 /// - Closure: Matrix multiplication of unitaries is unitary
 impl LieGroup for SU2 {
-    const DIM: usize = 2;
+    const MATRIX_DIM: usize = 2;
 
     type Algebra = Su2Algebra;
 
@@ -1055,15 +1055,6 @@ impl LieGroup for SU2 {
         let c_prime = result[[0, 0]].im; // Imaginary part of result[[0,0]]
 
         Su2Algebra([a_prime, b_prime, c_prime])
-    }
-
-    fn dim() -> usize {
-        2 // SU(2) consists of 2×2 matrices
-    }
-
-    fn trace(&self) -> Complex64 {
-        // Tr(M) = M₀₀ + M₁₁
-        self.matrix[[0, 0]] + self.matrix[[1, 1]]
     }
 }
 

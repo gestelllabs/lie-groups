@@ -33,7 +33,7 @@
 //! // SU(4) for grand unified theories
 //! type Su4Algebra = SunAlgebra<4>;
 //! let x = Su4Algebra::zero();
-//! assert_eq!(Su4Algebra::dim(), 15);  // 4² - 1 = 15
+//! assert_eq!(Su4Algebra::DIM, 15);  // 4² - 1 = 15
 //!
 //! // Type safety: dimensions checked at compile time
 //! let su2 = SunAlgebra::<2>::basis_element(0);  // dim = 3
@@ -745,7 +745,7 @@ impl<const N: usize> MulAssign<&SUN<N>> for SUN<N> {
 
 impl<const N: usize> LieGroup for SUN<N> {
     type Algebra = SunAlgebra<N>;
-    const DIM: usize = {
+    const MATRIX_DIM: usize = {
         assert!(
             N >= 2,
             "SU(N) requires N >= 2: SU(1) is trivial, SU(0) is undefined"
@@ -917,14 +917,6 @@ impl<const N: usize> LieGroup for SUN<N> {
         let log_scaled = log_matrix.mapv(|z| z * scale_factor);
 
         Ok(SunAlgebra::from_matrix(&log_scaled))
-    }
-
-    fn dim() -> usize {
-        N
-    }
-
-    fn trace(&self) -> Complex64 {
-        (0..N).map(|i| self.matrix[[i, i]]).sum()
     }
 }
 
@@ -1130,10 +1122,10 @@ mod tests {
 
     #[test]
     fn test_sun_algebra_dimensions() {
-        assert_eq!(SunAlgebra::<2>::dim(), 3); // SU(2)
-        assert_eq!(SunAlgebra::<3>::dim(), 8); // SU(3)
-        assert_eq!(SunAlgebra::<4>::dim(), 15); // SU(4)
-        assert_eq!(SunAlgebra::<5>::dim(), 24); // SU(5)
+        assert_eq!(SunAlgebra::<2>::DIM, 3); // SU(2)
+        assert_eq!(SunAlgebra::<3>::DIM, 8); // SU(3)
+        assert_eq!(SunAlgebra::<4>::DIM, 15); // SU(4)
+        assert_eq!(SunAlgebra::<5>::DIM, 24); // SU(5)
     }
 
     #[test]
@@ -1310,7 +1302,7 @@ mod tests {
         let yx = y.bracket(&x);
 
         // [X,Y] = -[Y,X]
-        for i in 0..SunAlgebra::<4>::dim() {
+        for i in 0..SunAlgebra::<4>::DIM {
             assert_relative_eq!(xy.coefficients[i], -yx.coefficients[i], epsilon = 1e-10);
         }
     }
@@ -1325,7 +1317,7 @@ mod tests {
         // Left linearity: [αX + Y, Z] = α[X, Z] + [Y, Z]
         let lhs = x.scale(alpha).add(&y).bracket(&z);
         let rhs = x.bracket(&z).scale(alpha).add(&y.bracket(&z));
-        for i in 0..SunAlgebra::<3>::dim() {
+        for i in 0..SunAlgebra::<3>::DIM {
             assert!(
                 (lhs.coefficients[i] - rhs.coefficients[i]).abs() < 1e-14,
                 "Left linearity failed at component {}: {} vs {}",
@@ -1338,7 +1330,7 @@ mod tests {
         // Right linearity: [Z, αX + Y] = α[Z, X] + [Z, Y]
         let lhs = z.bracket(&x.scale(alpha).add(&y));
         let rhs = z.bracket(&x).scale(alpha).add(&z.bracket(&y));
-        for i in 0..SunAlgebra::<3>::dim() {
+        for i in 0..SunAlgebra::<3>::DIM {
             assert!(
                 (lhs.coefficients[i] - rhs.coefficients[i]).abs() < 1e-14,
                 "Right linearity failed at component {}: {} vs {}",

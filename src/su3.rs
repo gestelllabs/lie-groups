@@ -652,6 +652,12 @@ impl SU3 {
         self.inverse()
     }
 
+    /// Trace of the matrix: Tr(U)
+    #[must_use]
+    pub fn trace(&self) -> Complex64 {
+        self.matrix[[0, 0]] + self.matrix[[1, 1]] + self.matrix[[2, 2]]
+    }
+
     /// Distance from identity element
     #[must_use]
     pub fn distance_to_identity(&self) -> f64 {
@@ -938,7 +944,7 @@ impl MulAssign<&SU3> for SU3 {
 }
 
 impl LieGroup for SU3 {
-    const DIM: usize = 3;
+    const MATRIX_DIM: usize = 3;
 
     type Algebra = Su3Algebra;
 
@@ -1107,14 +1113,6 @@ impl LieGroup for SU3 {
         // Convert result to algebra element
         Ok(Su3Algebra::from_matrix(&log_matrix))
     }
-
-    fn dim() -> usize {
-        3 // SU(3) consists of 3×3 matrices
-    }
-
-    fn trace(&self) -> Complex64 {
-        self.matrix[[0, 0]] + self.matrix[[1, 1]] + self.matrix[[2, 2]]
-    }
 }
 
 // ============================================================================
@@ -1165,7 +1163,7 @@ mod tests {
 
     #[test]
     fn test_algebra_dimension() {
-        assert_eq!(Su3Algebra::dim(), 8);
+        assert_eq!(Su3Algebra::DIM, 8);
     }
 
     #[test]

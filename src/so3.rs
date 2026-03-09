@@ -505,7 +505,7 @@ impl MulAssign<&SO3> for SO3 {
 }
 
 impl LieGroup for SO3 {
-    const DIM: usize = 3;
+    const MATRIX_DIM: usize = 3;
 
     type Algebra = So3Algebra;
 
@@ -624,15 +624,6 @@ impl LieGroup for SO3 {
 
         // The logarithm is log(R) = θ·(nx, ny, nz) ∈ so(3)
         Ok(So3Algebra([theta * nx, theta * ny, theta * nz]))
-    }
-
-    fn dim() -> usize {
-        3 // SO(3) is 3-dimensional (3×3 matrices)
-    }
-
-    fn trace(&self) -> num_complex::Complex<f64> {
-        // For real matrices, trace is real
-        num_complex::Complex::new(self.matrix.trace(), 0.0)
     }
 }
 

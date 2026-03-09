@@ -486,7 +486,7 @@ impl MulAssign<&U1> for U1 {
 }
 
 impl LieGroup for U1 {
-    const DIM: usize = 1;
+    const MATRIX_DIM: usize = 1;
 
     type Algebra = U1Algebra;
 
@@ -577,16 +577,6 @@ impl LieGroup for U1 {
         // However, users should be aware of the **discontinuity** at θ = 0 when
         // using log in optimization or when computing angle differences.
         Ok(U1Algebra(self.theta))
-    }
-
-    fn dim() -> usize {
-        1 // U(1) is 1-dimensional (complex numbers as 1×1 matrices)
-    }
-
-    fn trace(&self) -> Complex<f64> {
-        // Trace of e^{iθ} viewed as 1×1 matrix
-        // Tr([e^{iθ}]) = e^{iθ}
-        Complex::new(self.theta.cos(), self.theta.sin())
     }
 }
 

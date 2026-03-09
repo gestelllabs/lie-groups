@@ -52,7 +52,6 @@
 //! 3. **Log-returns**: `r = log(S_t/S_0)` lives in the Lie algebra
 
 use crate::{LieAlgebra, LieGroup};
-use num_complex::Complex;
 use std::fmt;
 use std::ops::{Add, Mul, MulAssign, Neg, Sub};
 
@@ -345,7 +344,7 @@ impl MulAssign<&RPlus> for RPlus {
 }
 
 impl LieGroup for RPlus {
-    const DIM: usize = 1;
+    const MATRIX_DIM: usize = 1;
 
     type Algebra = RPlusAlgebra;
 
@@ -392,15 +391,6 @@ impl LieGroup for RPlus {
         // Unlike U(1), there's no branch cut ambiguity.
         // The logarithm is single-valued on ℝ⁺.
         Ok(RPlusAlgebra(self.value.ln()))
-    }
-
-    fn dim() -> usize {
-        1
-    }
-
-    fn trace(&self) -> Complex<f64> {
-        // "Trace" of 1×1 real matrix [x] = x
-        Complex::new(self.value, 0.0)
     }
 }
 
@@ -587,14 +577,6 @@ mod tests {
     }
 
     #[test]
-    fn test_trace() {
-        let g = RPlus::from_value(7.0);
-        let tr = g.trace();
-        assert!((tr.re - 7.0).abs() < 1e-10);
-        assert!(tr.im.abs() < 1e-10);
-    }
-
-    #[test]
     fn test_display() {
         let g = RPlus::from_value(2.5);
         let s = format!("{}", g);
@@ -604,7 +586,7 @@ mod tests {
 
     #[test]
     fn test_algebra_dim() {
-        assert_eq!(RPlusAlgebra::dim(), 1);
+        assert_eq!(RPlusAlgebra::DIM, 1);
     }
 
     #[test]
@@ -661,7 +643,7 @@ mod tests {
 
     #[test]
     fn test_group_dim() {
-        assert_eq!(RPlus::dim(), 1);
+        assert_eq!(RPlus::MATRIX_DIM, 1);
     }
 
     #[test]
