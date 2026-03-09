@@ -869,6 +869,39 @@ impl MulAssign<&SU2> for SU2 {
     }
 }
 
+impl approx::AbsDiffEq for Su2Algebra {
+    type Epsilon = f64;
+
+    fn default_epsilon() -> Self::Epsilon {
+        1e-10
+    }
+
+    fn abs_diff_eq(&self, other: &Self, epsilon: Self::Epsilon) -> bool {
+        self.0
+            .iter()
+            .zip(other.0.iter())
+            .all(|(a, b)| (a - b).abs() < epsilon)
+    }
+}
+
+impl approx::RelativeEq for Su2Algebra {
+    fn default_max_relative() -> Self::Epsilon {
+        1e-10
+    }
+
+    fn relative_eq(
+        &self,
+        other: &Self,
+        epsilon: Self::Epsilon,
+        max_relative: Self::Epsilon,
+    ) -> bool {
+        self.0
+            .iter()
+            .zip(other.0.iter())
+            .all(|(a, b)| approx::RelativeEq::relative_eq(a, b, epsilon, max_relative))
+    }
+}
+
 impl fmt::Display for Su2Algebra {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(

@@ -458,6 +458,33 @@ impl U1 {
     }
 }
 
+impl approx::AbsDiffEq for U1Algebra {
+    type Epsilon = f64;
+
+    fn default_epsilon() -> Self::Epsilon {
+        1e-10
+    }
+
+    fn abs_diff_eq(&self, other: &Self, epsilon: Self::Epsilon) -> bool {
+        (self.0 - other.0).abs() < epsilon
+    }
+}
+
+impl approx::RelativeEq for U1Algebra {
+    fn default_max_relative() -> Self::Epsilon {
+        1e-10
+    }
+
+    fn relative_eq(
+        &self,
+        other: &Self,
+        epsilon: Self::Epsilon,
+        max_relative: Self::Epsilon,
+    ) -> bool {
+        approx::RelativeEq::relative_eq(&self.0, &other.0, epsilon, max_relative)
+    }
+}
+
 impl fmt::Display for U1Algebra {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "u(1)({:.4})", self.0)

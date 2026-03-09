@@ -99,7 +99,7 @@ use std::ops::{Add, Mul, MulAssign, Neg, Sub};
 ///
 /// For SU(N), we store (N²-1) f64 values in a heap-allocated Vec for N > 4,
 /// or stack-allocated array for N ≤ 4 (common cases).
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct SunAlgebra<const N: usize> {
     /// Coefficients in generalized Gell-Mann basis
     /// Length: N² - 1
@@ -703,6 +703,39 @@ impl<const N: usize> SUN<N> {
             .map(num_complex::Complex::norm_sqr)
             .sum::<f64>()
             .sqrt()
+    }
+}
+
+impl<const N: usize> approx::AbsDiffEq for SunAlgebra<N> {
+    type Epsilon = f64;
+
+    fn default_epsilon() -> Self::Epsilon {
+        1e-10
+    }
+
+    fn abs_diff_eq(&self, other: &Self, epsilon: Self::Epsilon) -> bool {
+        self.coefficients
+            .iter()
+            .zip(other.coefficients.iter())
+            .all(|(a, b)| (a - b).abs() < epsilon)
+    }
+}
+
+impl<const N: usize> approx::RelativeEq for SunAlgebra<N> {
+    fn default_max_relative() -> Self::Epsilon {
+        1e-10
+    }
+
+    fn relative_eq(
+        &self,
+        other: &Self,
+        epsilon: Self::Epsilon,
+        max_relative: Self::Epsilon,
+    ) -> bool {
+        self.coefficients
+            .iter()
+            .zip(other.coefficients.iter())
+            .all(|(a, b)| approx::RelativeEq::relative_eq(a, b, epsilon, max_relative))
     }
 }
 
