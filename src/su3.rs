@@ -597,10 +597,16 @@ impl Su3Algebra {
 #[derive(Clone, Debug, PartialEq)]
 pub struct SU3 {
     /// 3×3 complex unitary matrix
-    pub matrix: Array2<Complex64>,
+    pub(crate) matrix: Array2<Complex64>,
 }
 
 impl SU3 {
+    /// Access the underlying 3×3 unitary matrix
+    #[must_use]
+    pub fn matrix(&self) -> &Array2<Complex64> {
+        &self.matrix
+    }
+
     /// Identity element
     #[must_use]
     pub fn identity() -> Self {
@@ -640,9 +646,9 @@ impl SU3 {
         }
     }
 
-    /// Conjugate transpose (adjoint)
+    /// Conjugate transpose: U†
     #[must_use]
-    pub fn adjoint(&self) -> Self {
+    pub fn conjugate_transpose(&self) -> Self {
         self.inverse()
     }
 
@@ -950,8 +956,8 @@ impl LieGroup for SU3 {
         Self::inverse(self)
     }
 
-    fn adjoint(&self) -> Self {
-        Self::adjoint(self)
+    fn conjugate_transpose(&self) -> Self {
+        Self::conjugate_transpose(self)
     }
 
     fn adjoint_action(&self, algebra_element: &Su3Algebra) -> Su3Algebra {
@@ -2027,7 +2033,7 @@ mod tests {
         // For SU(3), we also require det = 1 (not just |det| = 1)
         // We verify this indirectly through verify_special_unitarity if available,
         // or by checking trace(U†U) = 3 (trace of identity)
-        let u_dag_u = element.adjoint().compose(&element);
+        let u_dag_u = element.conjugate_transpose().compose(&element);
         let trace = u_dag_u.trace();
         assert!(
             (trace.re - 3.0).abs() < 1e-10 && trace.im.abs() < 1e-10,

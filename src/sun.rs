@@ -492,10 +492,16 @@ impl<const N: usize> LieAlgebra for SunAlgebra<N> {
 #[derive(Debug, Clone)]
 pub struct SUN<const N: usize> {
     /// N×N complex unitary matrix
-    pub matrix: Array2<Complex64>,
+    pub(crate) matrix: Array2<Complex64>,
 }
 
 impl<const N: usize> SUN<N> {
+    /// Access the underlying N×N unitary matrix
+    #[must_use]
+    pub fn matrix(&self) -> &Array2<Complex64> {
+        &self.matrix
+    }
+
     /// Identity element: Iₙ
     #[must_use]
     pub fn identity() -> Self {
@@ -764,7 +770,7 @@ impl<const N: usize> LieGroup for SUN<N> {
         }
     }
 
-    fn adjoint(&self) -> Self {
+    fn conjugate_transpose(&self) -> Self {
         Self {
             matrix: self.matrix.t().mapv(|z| z.conj()),
         }

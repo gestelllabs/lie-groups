@@ -793,8 +793,8 @@ pub trait LieGroup: Clone + Sized {
 
     /// Adjoint representation element (for matrix groups: conjugate transpose).
     ///
-    /// For matrix groups: `adjoint(g) = g†` (conjugate transpose)
-    /// For unitary groups: `adjoint(g) = inverse(g)`
+    /// For matrix groups: `conjugate_transpose(g) = g†`
+    /// For unitary groups: `conjugate_transpose(g) = inverse(g)`
     ///
     /// # Gauge Theory Application
     ///
@@ -802,7 +802,7 @@ pub trait LieGroup: Clone + Sized {
     /// ```text
     /// A' = g A g† + g dg†
     /// ```
-    /// where g† is the adjoint.
+    /// where g† is the conjugate transpose.
     ///
     /// # Examples
     ///
@@ -810,13 +810,13 @@ pub trait LieGroup: Clone + Sized {
     /// use lie_groups::{LieGroup, SU2};
     ///
     /// let g = SU2::rotation_x(0.7);
-    /// let g_adj = g.adjoint();
+    /// let g_dag = g.conjugate_transpose();
     ///
-    /// // For unitary groups, adjoint equals inverse
-    /// assert!(g_adj.compose(&g).distance_to_identity() < 1e-10);
+    /// // For unitary groups, conjugate transpose equals inverse
+    /// assert!(g_dag.compose(&g).distance_to_identity() < 1e-10);
     /// ```
     #[must_use]
-    fn adjoint(&self) -> Self;
+    fn conjugate_transpose(&self) -> Self;
 
     /// Adjoint representation: `Ad_g`: 𝔤 → 𝔤
     ///
@@ -835,14 +835,14 @@ pub trait LieGroup: Clone + Sized {
     /// Ad_g(X) = g X g†
     /// ```
     ///
-    /// # Distinction from `adjoint()`
+    /// # Distinction from `conjugate_transpose()`
     ///
-    /// - `adjoint()`: Returns g† (conjugate transpose), a **group element**
+    /// - `conjugate_transpose()`: Returns g† (conjugate transpose), a **group element**
     /// - `adjoint_action()`: Returns `Ad_g(X)` (conjugation), a **Lie algebra element**
     ///
     /// | Method | Signature | Output Type | Mathematical Meaning |
     /// |--------|-----------|-------------|---------------------|
-    /// | `adjoint()` | `g → g†` | Group element | Hermitian conjugate |
+    /// | `conjugate_transpose()` | `g → g†` | Group element | Hermitian conjugate |
     /// | `adjoint_action()` | `(g, X) → gXg⁻¹` | Algebra element | Conjugation action |
     ///
     /// # Properties
@@ -900,7 +900,7 @@ pub trait LieGroup: Clone + Sized {
     /// # See Also
     ///
     /// - [`exp`](Self::exp) - Exponential map 𝔤 → G
-    /// - [`adjoint`](Self::adjoint) - Conjugate transpose g → g†
+    /// - [`conjugate_transpose`](Self::conjugate_transpose) - Conjugate transpose g → g†
     /// - [`LieAlgebra::bracket`] - Lie bracket [·,·]
     #[must_use]
     fn adjoint_action(&self, algebra_element: &Self::Algebra) -> Self::Algebra;
@@ -1289,7 +1289,7 @@ pub trait LieGroup: Clone + Sized {
     /// }
     ///
     /// // Verify still on manifold
-    /// assert!(g.adjoint().compose(&g).distance_to_identity() < 1e-12);
+    /// assert!(g.conjugate_transpose().compose(&g).distance_to_identity() < 1e-12);
     /// ```
     ///
     /// # Default Implementation
@@ -1416,8 +1416,8 @@ mod tests {
             }
         }
 
-        fn adjoint(&self) -> Self {
-            self.inverse() // U(1) is abelian, so adjoint = inverse
+        fn conjugate_transpose(&self) -> Self {
+            self.inverse() // U(1) is abelian, so conjugate transpose = inverse
         }
 
         fn adjoint_action(&self, algebra_element: &Self::Algebra) -> Self::Algebra {
@@ -1618,7 +1618,7 @@ mod tests {
 
         // Check unitarity: U†U should be identity
         let unitarity_error_no_reorth = g_no_reorth
-            .adjoint()
+            .conjugate_transpose()
             .compose(&g_no_reorth)
             .distance_to_identity();
 
@@ -1632,7 +1632,7 @@ mod tests {
         }
 
         let unitarity_error_with_reorth = g_with_reorth
-            .adjoint()
+            .conjugate_transpose()
             .compose(&g_with_reorth)
             .distance_to_identity();
 
@@ -1687,7 +1687,10 @@ mod tests {
         );
 
         // Reorthogonalized version should be exactly on manifold
-        let unitarity_error = g_reorth.adjoint().compose(&g_reorth).distance_to_identity();
+        let unitarity_error = g_reorth
+            .conjugate_transpose()
+            .compose(&g_reorth)
+            .distance_to_identity();
         assert!(
             unitarity_error < 1e-14,
             "Reorthogonalized element should be on manifold: {}",
@@ -1739,12 +1742,12 @@ mod tests {
         // Operator should match compose
         let product_op = &g * &h;
         let product_compose = g.compose(&h);
-        assert_eq!(product_op.matrix, product_compose.matrix);
+        assert_eq!(product_op.matrix(), product_compose.matrix());
 
         // MulAssign
         let mut g2 = g.clone();
         g2 *= &h;
-        assert_eq!(g2.matrix, product_compose.matrix);
+        assert_eq!(g2.matrix(), product_compose.matrix());
     }
 
     #[test]

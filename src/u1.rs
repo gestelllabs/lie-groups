@@ -502,8 +502,8 @@ impl LieGroup for U1 {
         Self::from_angle(-self.theta)
     }
 
-    fn adjoint(&self) -> Self {
-        // For U(1) (abelian group), adjoint = complex conjugate = inverse
+    fn conjugate_transpose(&self) -> Self {
+        // For U(1) (abelian group), conjugate transpose = complex conjugate = inverse
         self.inverse()
     }
 
@@ -802,7 +802,7 @@ mod tests {
     fn test_adjoint_equals_inverse() {
         // For abelian U(1), adjoint = inverse
         let g = U1::from_angle(1.7);
-        let adj = g.adjoint();
+        let adj = g.conjugate_transpose();
         let inv = g.inverse();
 
         assert!((adj.angle() - inv.angle()).abs() < 1e-10);

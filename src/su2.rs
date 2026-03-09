@@ -339,10 +339,16 @@ impl crate::Casimir for Su2Algebra {
 #[derive(Debug, Clone)]
 pub struct SU2 {
     /// The 2×2 unitary matrix representation
-    pub matrix: Array2<Complex64>,
+    pub(crate) matrix: Array2<Complex64>,
 }
 
 impl SU2 {
+    /// Access the underlying 2×2 unitary matrix
+    #[must_use]
+    pub fn matrix(&self) -> &Array2<Complex64> {
+        &self.matrix
+    }
+
     /// Identity element: I₂
     #[must_use]
     pub fn identity() -> Self {
@@ -534,12 +540,12 @@ impl SU2 {
         Self { matrix }
     }
 
-    /// Hermitian adjoint (conjugate transpose): U†
+    /// Hermitian conjugate transpose: U†
     ///
     /// For unitary matrices U ∈ SU(2), we have U† = U⁻¹
     /// This is used in gauge transformations: A' = g A g†
     #[must_use]
-    pub fn adjoint(&self) -> Self {
+    pub fn conjugate_transpose(&self) -> Self {
         self.inverse()
     }
 
@@ -911,8 +917,8 @@ impl LieGroup for SU2 {
         Self::inverse(self) // Delegate to inherent method
     }
 
-    fn adjoint(&self) -> Self {
-        Self::adjoint(self) // Delegate to inherent method
+    fn conjugate_transpose(&self) -> Self {
+        Self::conjugate_transpose(self) // Delegate to inherent method
     }
 
     fn distance_to_identity(&self) -> f64 {

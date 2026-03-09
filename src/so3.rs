@@ -242,10 +242,16 @@ impl LieAlgebra for So3Algebra {
 #[derive(Clone, Debug, PartialEq)]
 pub struct SO3 {
     /// 3×3 real orthogonal matrix
-    pub matrix: Matrix3<f64>,
+    pub(crate) matrix: Matrix3<f64>,
 }
 
 impl SO3 {
+    /// Access the underlying 3×3 orthogonal matrix
+    #[must_use]
+    pub fn matrix(&self) -> &Matrix3<f64> {
+        &self.matrix
+    }
+
     /// Identity element (no rotation)
     #[must_use]
     pub fn identity() -> Self {
@@ -517,8 +523,8 @@ impl LieGroup for SO3 {
         Self::inverse(self)
     }
 
-    fn adjoint(&self) -> Self {
-        // For orthogonal matrices, adjoint = transpose = inverse
+    fn conjugate_transpose(&self) -> Self {
+        // For orthogonal matrices, conjugate transpose = transpose = inverse
         self.inverse()
     }
 

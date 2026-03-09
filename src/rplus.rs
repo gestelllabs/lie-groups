@@ -365,8 +365,8 @@ impl LieGroup for RPlus {
         }
     }
 
-    fn adjoint(&self) -> Self {
-        // Convention: adjoint() returns g⁻¹ for consistency with
+    fn conjugate_transpose(&self) -> Self {
+        // Convention: conjugate_transpose() returns g⁻¹ for consistency with
         // unitary matrix groups where g† = g⁻¹.
         self.inverse()
     }
@@ -570,7 +570,7 @@ mod tests {
     fn test_adjoint() {
         // For abelian groups, adjoint = inverse
         let g = RPlus::from_value(3.0);
-        let adj = g.adjoint();
+        let adj = g.conjugate_transpose();
         assert!(
             (adj.value() - 1.0 / 3.0).abs() < 1e-10,
             "Adjoint should equal inverse"
