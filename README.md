@@ -37,14 +37,14 @@ convergence across all groups.
 
 ```toml
 [dependencies]
-lie-groups = "0.1"
+lie-groups = "0.2"
 ```
 
 To disable random sampling (removes `rand`/`rand_distr` dependencies):
 
 ```toml
 [dependencies]
-lie-groups = { version = "0.1", default-features = false }
+lie-groups = { version = "0.2", default-features = false }
 ```
 
 ## Quick start
