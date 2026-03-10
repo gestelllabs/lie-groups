@@ -429,16 +429,19 @@ pub trait LieAlgebra: Clone + Sized + std::fmt::Debug + PartialEq {
     #[must_use]
     fn scale(&self, scalar: f64) -> Self;
 
-    /// Euclidean norm: ||v||
+    /// Euclidean norm of the coefficient vector: ||v|| = √(Σᵢ vᵢ²)
     ///
-    /// For finite-dimensional vector spaces, this is the standard L² norm:
-    /// ```text
-    /// ||v|| = √(Σᵢ vᵢ²)
-    /// ```
+    /// This is the L² norm in the **coefficient space**, not the matrix operator
+    /// norm. For the standard Gell-Mann normalization `Tr(λᵢ λⱼ) = 2δᵢⱼ`,
+    /// the coefficient norm equals `||X||_F / √2` where `||·||_F` is the
+    /// Frobenius norm of the matrix representation.
     ///
-    /// Used for:
-    /// - Gradient descent step size control
-    /// - Checking convergence (||∇f|| < ε)
+    /// # Convergence Bounds
+    ///
+    /// The BCH convergence radius `||X|| + ||Y|| < log(2)` was derived using
+    /// the operator norm. Since `||X||_op ≤ ||X||_F = √2 · ||X||_coeff`,
+    /// the coefficient norm gives a conservative (safe) convergence check:
+    /// if `x.norm() + y.norm() < log(2)`, the BCH series converges.
     ///
     /// # Returns
     ///
@@ -1216,6 +1219,27 @@ pub trait LieGroup: Clone + Sized + std::fmt::Debug {
                 Self::identity()
             }
         }
+    }
+
+    /// Geodesic interpolation between two group elements.
+    ///
+    /// Computes the point at parameter `t` along the geodesic from `self` to `other`:
+    /// ```text
+    /// γ(t) = g · exp(t · log(g⁻¹ · h))
+    /// ```
+    ///
+    /// - `t = 0.0` → returns `self`
+    /// - `t = 1.0` → returns `other`
+    /// - `t = 0.5` → geodesic midpoint
+    ///
+    /// # Errors
+    ///
+    /// Returns `None` if `g⁻¹h` is at the cut locus (log fails).
+    #[must_use]
+    fn geodesic(&self, other: &Self, t: f64) -> Option<Self> {
+        let delta = self.inverse().compose(other);
+        let tangent = delta.log().ok()?;
+        Some(self.compose(&Self::exp(&tangent.scale(t))))
     }
 }
 
