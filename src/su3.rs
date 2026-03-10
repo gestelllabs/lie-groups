@@ -316,6 +316,15 @@ impl LieAlgebra for Su3Algebra {
 
         Self(result)
     }
+
+    #[inline]
+    fn inner(&self, other: &Self) -> f64 {
+        let mut sum = 0.0;
+        for i in 0..8 {
+            sum += self.0[i] * other.0[i];
+        }
+        sum
+    }
 }
 
 // ============================================================================

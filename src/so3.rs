@@ -229,6 +229,11 @@ impl LieAlgebra for So3Algebra {
             v[0] * w[1] - v[1] * w[0], // z component
         ])
     }
+
+    #[inline]
+    fn inner(&self, other: &Self) -> f64 {
+        self.0[0] * other.0[0] + self.0[1] * other.0[1] + self.0[2] * other.0[2]
+    }
 }
 
 /// SO(3) group element - 3×3 real orthogonal matrix with determinant 1

@@ -377,7 +377,7 @@ pub trait AntiHermitianByConstruction: LieAlgebra + sealed::SealedAntiHermitian 
 /// This trait is open for implementation. The associated type constraints
 /// on `LieGroup` (requiring `type Algebra: LieAlgebra`) provide compile-time
 /// safety by enforcing group-algebra correspondence.
-pub trait LieAlgebra: Clone + Sized {
+pub trait LieAlgebra: Clone + Sized + std::fmt::Debug + PartialEq {
     /// Dimension of the Lie algebra as a compile-time constant.
     ///
     /// This enables compile-time dimension checking where possible.
@@ -653,7 +653,7 @@ pub trait LieAlgebra: Clone + Sized {
 /// This trait is open for implementation. The associated type `Algebra`
 /// must implement `LieAlgebra`, providing compile-time enforcement of
 /// the group-algebra correspondence.
-pub trait LieGroup: Clone + Sized {
+pub trait LieGroup: Clone + Sized + std::fmt::Debug {
     /// Matrix dimension in the fundamental representation.
     ///
     /// For matrix Lie groups, this is the size of the N×N matrices:

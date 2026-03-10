@@ -478,6 +478,15 @@ impl<const N: usize> LieAlgebra for SunAlgebra<N> {
         let commutator = x.dot(&y) - y.dot(&x);
         Self::from_matrix(&commutator)
     }
+
+    #[inline]
+    fn inner(&self, other: &Self) -> f64 {
+        self.coefficients
+            .iter()
+            .zip(other.coefficients.iter())
+            .map(|(a, b)| a * b)
+            .sum()
+    }
 }
 
 /// SU(N) group element - N×N unitary matrix with det = 1

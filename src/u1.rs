@@ -246,6 +246,11 @@ impl LieAlgebra for U1Algebra {
     fn bracket(&self, _other: &Self) -> Self {
         Self::zero()
     }
+
+    #[inline]
+    fn inner(&self, other: &Self) -> f64 {
+        self.0 * other.0
+    }
 }
 
 /// An element of U(1), the circle group

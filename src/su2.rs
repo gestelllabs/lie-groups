@@ -321,6 +321,11 @@ impl LieAlgebra for Su2Algebra {
             -(x[0] * y[1] - x[1] * y[0]),
         ])
     }
+
+    #[inline]
+    fn inner(&self, other: &Self) -> f64 {
+        self.0[0] * other.0[0] + self.0[1] * other.0[1] + self.0[2] * other.0[2]
+    }
 }
 
 // ============================================================================

@@ -186,6 +186,11 @@ impl LieAlgebra for RPlusAlgebra {
     fn bracket(&self, _other: &Self) -> Self {
         Self::zero()
     }
+
+    #[inline]
+    fn inner(&self, other: &Self) -> f64 {
+        self.0 * other.0
+    }
 }
 
 // ============================================================================
