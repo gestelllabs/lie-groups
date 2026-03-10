@@ -893,23 +893,21 @@ impl<const N: usize> LieGroup for SUN<N> {
 
         // Square k times: exp(X) = [exp(X/2^k)]^{2^k}
         //
-        // Tao priority: Reorthogonalize periodically to prevent numerical drift
-        // from the SU(N) manifold during repeated squaring operations
+        // Reorthogonalize after EVERY squaring to prevent numerical drift.
+        //
+        // Each matrix multiply accumulates O(nε) orthogonality loss.
+        // After k squarings without correction: O(2^k · nε) total error.
+        // For k=10, n=4: error ~4000ε ≈ 9e-13 — approaching catastrophic loss.
+        //
+        // Cost of Gram-Schmidt is O(N³), same as the matrix multiply itself,
+        // so the overhead factor is ≤2× (negligible vs correctness).
         let mut result = exp_scaled;
-        for i in 0..k {
+        for _ in 0..k {
             result = result.dot(&result);
-
-            // Reorthogonalize every 4 squarings to maintain manifold constraints
-            // (Prevents accumulation of floating-point errors)
-            if (i + 1) % 4 == 0 && i + 1 < k {
-                result = Self::gram_schmidt_project(result);
-            }
+            result = Self::gram_schmidt_project(result);
         }
 
-        // Final reorthogonalization to ensure result is exactly on manifold
-        Self {
-            matrix: Self::gram_schmidt_project(result),
-        }
+        Self { matrix: result }
     }
 
     fn log(&self) -> crate::error::LogResult<Self::Algebra> {
