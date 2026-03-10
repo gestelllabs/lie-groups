@@ -739,6 +739,56 @@ mod tests {
     }
 
     #[test]
+    fn test_near_pi_axis_angle_roundtrip() {
+        // Near θ = π, sin(θ/2) ≈ 1 and cos(θ/2) ≈ 0.
+        // Axis extraction divides by sin(θ/2), which is well-conditioned here.
+        // But w ≈ 0 means acos(w) sensitivity is low — this should work fine.
+        let axis = [0.0, 0.0, 1.0];
+        let angle = PI - 1e-8;
+
+        let q = UnitQuaternion::from_axis_angle(axis, angle);
+        assert!(q.verify_unit(1e-10));
+
+        let (axis_out, angle_out) = q.to_axis_angle();
+        assert!(
+            (angle - angle_out).abs() < 1e-6,
+            "Near-π angle roundtrip: got {}, expected {}",
+            angle_out,
+            angle
+        );
+        assert!(
+            (axis_out[2] - 1.0).abs() < 1e-6,
+            "Near-π axis roundtrip: got {:?}",
+            axis_out
+        );
+
+        // Also test the rotation acts correctly
+        let v = [1.0, 0.0, 0.0];
+        let rotated = q.rotate_vector(v);
+        // Rotation by π-ε around z should map (1,0,0) ≈ (-1, 0, 0)
+        assert!(
+            (rotated[0] + 1.0).abs() < 1e-6,
+            "Near-π rotation: got {:?}",
+            rotated
+        );
+    }
+
+    #[test]
+    fn test_exp_log_near_identity() {
+        // Very small algebra element — tests the near-identity branch
+        let v = [1e-12, 0.0, 0.0];
+        let q = UnitQuaternion::exp(v);
+        assert!(q.verify_unit(1e-14));
+        assert!(q.distance_to_identity() < 1e-10);
+
+        let log_q = q.log();
+        // Near identity, log should return near-zero
+        for &c in &log_q {
+            assert!(c.abs() < 1e-8);
+        }
+    }
+
+    #[test]
     fn test_matrix_conversion() {
         let q = UnitQuaternion::rotation_z(PI / 3.0);
 
