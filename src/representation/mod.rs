@@ -63,7 +63,7 @@ use crate::su2::SU2;
 pub struct Spin {
     /// Twice the spin: `two_j` = 2j
     /// This allows half-integer spins while using integers
-    pub two_j: u32,
+    two_j: u32,
 }
 
 impl Spin {
@@ -75,6 +75,13 @@ impl Spin {
 
     /// Spin-1 (vector, adjoint representation)
     pub const ONE: Spin = Spin { two_j: 2 };
+
+    /// Get the internal 2j representation (useful for pattern matching).
+    #[inline]
+    #[must_use]
+    pub fn two_j(&self) -> u32 {
+        self.two_j
+    }
 
     /// Create from half-integer: j = n/2
     ///

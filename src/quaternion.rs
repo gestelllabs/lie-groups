@@ -255,8 +255,7 @@ impl UnitQuaternion {
         }
 
         let half_angle = angle / 2.0;
-        let sin_half = half_angle.sin();
-        let cos_half = half_angle.cos();
+        let (sin_half, cos_half) = half_angle.sin_cos();
 
         Self {
             w: cos_half,
@@ -273,8 +272,8 @@ impl UnitQuaternion {
     #[must_use]
     pub fn to_axis_angle(&self) -> ([f64; 3], f64) {
         // q = cos(θ/2) + sin(θ/2)·n̂
-        let angle = 2.0 * self.w.acos();
-        let sin_half = (1.0 - self.w * self.w).sqrt();
+        let angle = 2.0 * self.w.clamp(-1.0, 1.0).acos();
+        let sin_half = (1.0 - self.w * self.w).max(0.0).sqrt();
 
         if sin_half < IDENTITY_EPSILON {
             // Near identity, axis is arbitrary
@@ -420,8 +419,7 @@ impl UnitQuaternion {
         }
 
         let half_norm = norm / 2.0;
-        let cos_half = half_norm.cos();
-        let sin_half = half_norm.sin();
+        let (sin_half, cos_half) = half_norm.sin_cos();
 
         Self {
             w: cos_half,
@@ -438,8 +436,8 @@ impl UnitQuaternion {
     /// Formula: log(q) = (θ/sin(θ/2))·(x, y, z) where θ = 2·arccos(w)
     #[must_use]
     pub fn log(&self) -> [f64; 3] {
-        let theta = 2.0 * self.w.acos();
-        let sin_half = (1.0 - self.w * self.w).sqrt();
+        let theta = 2.0 * self.w.clamp(-1.0, 1.0).acos();
+        let sin_half = (1.0 - self.w * self.w).max(0.0).sqrt();
 
         if sin_half < IDENTITY_EPSILON {
             // Near identity
