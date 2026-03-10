@@ -142,11 +142,11 @@ mod sealed {
     /// structurally guarantees tr(X) = 0 for all elements X.
     ///
     /// # Examples
-    /// - `Su2Algebra([f64; 3])`: Pauli basis coefficients → always traceless
-    /// - `Su3Algebra([f64; 8])`: Gell-Mann basis coefficients → always traceless
+    /// - `Su2Algebra::new([f64; 3])`: Pauli basis coefficients → always traceless
+    /// - `Su3Algebra::new([f64; 8])`: Gell-Mann basis coefficients → always traceless
     ///
     /// # Non-examples
-    /// - `U1Algebra(f64)`: Represents iℝ, trace = i·a ≠ 0
+    /// - `U1Algebra::new(f64)`: Represents iℝ, trace = i·a ≠ 0
     /// - General matrix algebras: Can have arbitrary trace
     pub trait SealedTraceless {}
 
@@ -284,13 +284,13 @@ pub trait SemiSimple: LieGroup + sealed::SealedSemiSimple {}
 ///
 /// # Examples
 ///
-/// - `Su2Algebra([f64; 3])`: Pauli basis coefficients → always traceless
-/// - `Su3Algebra([f64; 8])`: Gell-Mann basis coefficients → always traceless
-/// - `So3Algebra([f64; 3])`: Antisymmetric matrices → always traceless
+/// - `Su2Algebra::new([f64; 3])`: Pauli basis coefficients → always traceless
+/// - `Su3Algebra::new([f64; 8])`: Gell-Mann basis coefficients → always traceless
+/// - `So3Algebra::new([f64; 3])`: Antisymmetric matrices → always traceless
 ///
 /// # Non-examples
 ///
-/// - `U1Algebra(f64)`: Represents iℝ ⊂ ℂ, where tr(ia) = ia ≠ 0
+/// - `U1Algebra::new(f64)`: Represents iℝ ⊂ ℂ, where tr(ia) = ia ≠ 0
 /// - General `Matrix<N,N>`: Can have arbitrary trace
 ///
 /// # Type-Level Proof Pattern

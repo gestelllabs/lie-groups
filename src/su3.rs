@@ -99,10 +99,27 @@ use std::ops::{Add, Mul, MulAssign, Neg, Sub};
 ///
 /// // First basis element (λ₁)
 /// let e1 = Su3Algebra::basis_element(0);
-/// assert_eq!(e1.0, [1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]);
+/// assert_eq!(*e1.components(), [1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]);
 /// ```
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub struct Su3Algebra(pub [f64; 8]);
+pub struct Su3Algebra(pub(crate) [f64; 8]);
+
+impl Su3Algebra {
+    /// Create a new su(3) algebra element from components.
+    ///
+    /// The 8 components correspond to coefficients in the Gell-Mann basis:
+    /// `X = i·∑ⱼ aⱼ·λⱼ`
+    #[must_use]
+    pub fn new(components: [f64; 8]) -> Self {
+        Self(components)
+    }
+
+    /// Returns the components as a fixed-size array reference.
+    #[must_use]
+    pub fn components(&self) -> &[f64; 8] {
+        &self.0
+    }
+}
 
 impl Add for Su3Algebra {
     type Output = Self;
@@ -1173,7 +1190,7 @@ impl SemiSimple for SU3 {}
 
 /// su(3) algebra elements are traceless by construction.
 ///
-/// The representation `Su3Algebra([f64; 8])` stores coefficients in the
+/// The representation `Su3Algebra::new([f64; 8])` stores coefficients in the
 /// Gell-Mann basis {iλ₁, ..., iλ₈}. All Gell-Mann matrices are traceless.
 impl TracelessByConstruction for Su3Algebra {}
 

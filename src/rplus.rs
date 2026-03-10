@@ -75,7 +75,7 @@ use std::ops::{Add, Mul, MulAssign, Neg, Sub};
 /// assert!((w.value() - 1.0).abs() < 1e-10);
 /// ```
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub struct RPlusAlgebra(pub f64);
+pub struct RPlusAlgebra(pub(crate) f64);
 
 impl Add for RPlusAlgebra {
     type Output = Self;
@@ -134,6 +134,14 @@ impl Mul<RPlusAlgebra> for f64 {
 }
 
 impl RPlusAlgebra {
+    /// Create a new ℝ⁺ algebra element.
+    ///
+    /// The value represents an infinitesimal scaling factor.
+    #[must_use]
+    pub fn new(value: f64) -> Self {
+        Self(value)
+    }
+
     /// Get the real value
     #[must_use]
     pub fn value(&self) -> f64 {

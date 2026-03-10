@@ -89,8 +89,8 @@ pub const BCH_PRACTICAL_LIMIT: f64 = 2.0;
 /// use lie_groups::bch::bch_will_converge;
 /// use lie_groups::su2::Su2Algebra;
 ///
-/// let small = Su2Algebra([0.1, 0.1, 0.1]);
-/// let large = Su2Algebra([1.0, 1.0, 1.0]);
+/// let small = Su2Algebra::new([0.1, 0.1, 0.1]);
+/// let large = Su2Algebra::new([1.0, 1.0, 1.0]);
 ///
 /// assert!(bch_will_converge(&small, &small));  // ||X|| + ||Y|| ≈ 0.35 < 0.693
 /// assert!(!bch_will_converge(&large, &large)); // ||X|| + ||Y|| ≈ 3.46 > 0.693
@@ -112,8 +112,8 @@ pub fn bch_will_converge<A: LieAlgebra>(x: &A, y: &A) -> bool {
 /// use lie_groups::bch::bch_is_practical;
 /// use lie_groups::su2::Su2Algebra;
 ///
-/// let moderate = Su2Algebra([0.5, 0.5, 0.0]);
-/// let large = Su2Algebra([2.0, 0.0, 0.0]);
+/// let moderate = Su2Algebra::new([0.5, 0.5, 0.0]);
+/// let large = Su2Algebra::new([2.0, 0.0, 0.0]);
 ///
 /// assert!(bch_is_practical(&moderate, &moderate));  // ||X|| + ||Y|| ≈ 1.41 < 2.0
 /// assert!(!bch_is_practical(&large, &large));       // ||X|| + ||Y|| = 4.0 > 2.0
@@ -140,8 +140,8 @@ pub fn bch_is_practical<A: LieAlgebra>(x: &A, y: &A) -> bool {
 /// use lie_groups::traits::{LieAlgebra, LieGroup};
 /// use lie_groups::SU2;
 ///
-/// let x = Su2Algebra([0.05, 0.0, 0.0]);
-/// let y = Su2Algebra([0.0, 0.05, 0.0]);
+/// let x = Su2Algebra::new([0.05, 0.0, 0.0]);
+/// let y = Su2Algebra::new([0.0, 0.05, 0.0]);
 ///
 /// // Method 1: Direct composition
 /// let g1 = SU2::exp(&x);
@@ -204,8 +204,8 @@ pub fn bch_second_order<A: LieAlgebra>(x: &A, y: &A) -> A {
 /// use lie_groups::traits::{LieAlgebra, LieGroup};
 /// use lie_groups::SU3;
 ///
-/// let x = Su3Algebra([0.1, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]);
-/// let y = Su3Algebra([0.0, 0.1, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]);
+/// let x = Su3Algebra::new([0.1, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]);
+/// let y = Su3Algebra::new([0.0, 0.1, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]);
 ///
 /// let z = bch_third_order(&x, &y);
 /// let product_bch = SU3::exp(&z);
@@ -277,8 +277,8 @@ pub fn bch_third_order<A: LieAlgebra>(x: &A, y: &A) -> A {
 /// use lie_groups::traits::{LieAlgebra, LieGroup};
 /// use lie_groups::SU2;
 ///
-/// let x = Su2Algebra([0.15, 0.0, 0.0]);
-/// let y = Su2Algebra([0.0, 0.15, 0.0]);
+/// let x = Su2Algebra::new([0.15, 0.0, 0.0]);
+/// let y = Su2Algebra::new([0.0, 0.15, 0.0]);
 ///
 /// let z = bch_fourth_order(&x, &y);
 /// let product_bch = SU2::exp(&z);
@@ -353,8 +353,8 @@ pub fn bch_fourth_order<A: LieAlgebra>(x: &A, y: &A) -> A {
 /// use lie_groups::traits::{LieAlgebra, LieGroup};
 /// use lie_groups::SU3;
 ///
-/// let x = Su3Algebra([0.15, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]);
-/// let y = Su3Algebra([0.0, 0.15, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]);
+/// let x = Su3Algebra::new([0.15, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]);
+/// let y = Su3Algebra::new([0.0, 0.15, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]);
 ///
 /// let z = bch_fifth_order(&x, &y);
 /// let product_bch = SU3::exp(&z);
@@ -438,8 +438,8 @@ pub fn bch_fifth_order<A: LieAlgebra>(x: &A, y: &A) -> A {
 /// use lie_groups::su2::Su2Algebra;
 /// use lie_groups::traits::LieAlgebra;
 ///
-/// let x = Su2Algebra([0.1, 0.0, 0.0]);
-/// let y = Su2Algebra([0.0, 0.1, 0.0]);
+/// let x = Su2Algebra::new([0.1, 0.0, 0.0]);
+/// let y = Su2Algebra::new([0.0, 0.1, 0.0]);
 ///
 /// let error_2nd = bch_error_bound(&x, &y, 2);
 /// let error_3rd = bch_error_bound(&x, &y, 3);
@@ -501,13 +501,13 @@ pub fn bch_error_bound<A: LieAlgebra>(x: &A, y: &A, order: usize) -> f64 {
 /// use lie_groups::SU2;
 ///
 /// // Small inputs: uses BCH series
-/// let x_small = Su2Algebra([0.1, 0.0, 0.0]);
-/// let y_small = Su2Algebra([0.0, 0.1, 0.0]);
+/// let x_small = Su2Algebra::new([0.1, 0.0, 0.0]);
+/// let y_small = Su2Algebra::new([0.0, 0.1, 0.0]);
 /// let z_small = bch_safe::<SU2>(&x_small, &y_small, 3).unwrap();
 ///
 /// // Large inputs: falls back to direct composition
-/// let x_large = Su2Algebra([1.0, 0.0, 0.0]);
-/// let y_large = Su2Algebra([0.0, 1.0, 0.0]);
+/// let x_large = Su2Algebra::new([1.0, 0.0, 0.0]);
+/// let y_large = Su2Algebra::new([0.0, 1.0, 0.0]);
 /// let z_large = bch_safe::<SU2>(&x_large, &y_large, 3).unwrap();
 ///
 /// // Both give correct results
@@ -572,13 +572,13 @@ pub enum BchMethod {
 /// use lie_groups::su2::Su2Algebra;
 /// use lie_groups::SU2;
 ///
-/// let x_small = Su2Algebra([0.1, 0.0, 0.0]);
-/// let y_small = Su2Algebra([0.0, 0.1, 0.0]);
+/// let x_small = Su2Algebra::new([0.1, 0.0, 0.0]);
+/// let y_small = Su2Algebra::new([0.0, 0.1, 0.0]);
 /// let (z, method) = bch_safe_with_method::<SU2>(&x_small, &y_small, 3).unwrap();
 /// assert_eq!(method, BchMethod::Series { order: 3 });
 ///
-/// let x_large = Su2Algebra([1.0, 0.0, 0.0]);
-/// let y_large = Su2Algebra([0.0, 1.0, 0.0]);
+/// let x_large = Su2Algebra::new([1.0, 0.0, 0.0]);
+/// let y_large = Su2Algebra::new([0.0, 1.0, 0.0]);
 /// let (z, method) = bch_safe_with_method::<SU2>(&x_large, &y_large, 3).unwrap();
 /// assert_eq!(method, BchMethod::DirectComposition);
 /// ```
@@ -662,7 +662,7 @@ impl std::error::Error for BchError {}
 /// use lie_groups::traits::{LieAlgebra, LieGroup};
 /// use lie_groups::SU2;
 ///
-/// let z = Su2Algebra([0.4, 0.3, 0.2]);
+/// let z = Su2Algebra::new([0.4, 0.3, 0.2]);
 /// let (x, y) = bch_split(&z);
 ///
 /// // Verify exp(X) · exp(Y) ≈ exp(Z)

@@ -125,7 +125,7 @@ use std::ops::{Add, Mul, MulAssign, Neg, Sub};
 /// assert_eq!(w.value(), 3.0);
 /// ```
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub struct U1Algebra(pub f64);
+pub struct U1Algebra(pub(crate) f64);
 
 impl Add for U1Algebra {
     type Output = Self;
@@ -184,6 +184,14 @@ impl Mul<U1Algebra> for f64 {
 }
 
 impl U1Algebra {
+    /// Create a new u(1) algebra element.
+    ///
+    /// The value `a` represents the element `i·a ∈ u(1)`.
+    #[must_use]
+    pub fn new(value: f64) -> Self {
+        Self(value)
+    }
+
     /// Get the real value a from the algebra element i·a
     #[inline]
     pub fn value(&self) -> f64 {

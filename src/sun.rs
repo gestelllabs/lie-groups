@@ -103,7 +103,7 @@ use std::ops::{Add, Mul, MulAssign, Neg, Sub};
 pub struct SunAlgebra<const N: usize> {
     /// Coefficients in generalized Gell-Mann basis
     /// Length: N² - 1
-    pub coefficients: Vec<f64>,
+    pub(crate) coefficients: Vec<f64>,
     _phantom: PhantomData<[(); N]>,
 }
 
@@ -136,6 +136,12 @@ impl<const N: usize> SunAlgebra<N> {
             coefficients,
             _phantom: PhantomData,
         }
+    }
+
+    /// Returns the coefficients in the generalized Gell-Mann basis.
+    #[must_use]
+    pub fn coefficients(&self) -> &[f64] {
+        &self.coefficients
     }
 
     /// Convert to N×N anti-Hermitian matrix: X = i·∑ⱼ aⱼ·λⱼ

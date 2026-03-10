@@ -96,7 +96,7 @@ const SIN_HALF_THETA_THRESHOLD: f64 = 1e-10;
 /// σᵤ = [[1, 0], [0, -1]]   e₂ = iσᵤ/2 = [[i/2, 0], [0, -i/2]]
 /// ```
 ///
-/// An element `Su2Algebra([a, b, c])` corresponds to the matrix
+/// An element `Su2Algebra::new([a, b, c])` corresponds to the matrix
 /// `(a·iσₓ + b·iσᵧ + c·iσᵤ)/2`, and the parameter `‖(a,b,c)‖` is the
 /// rotation angle in the exponential map.
 ///
@@ -127,7 +127,24 @@ const SIN_HALF_THETA_THRESHOLD: f64 = 1e-10;
 /// let sum = v.add(&w);
 /// ```
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub struct Su2Algebra(pub [f64; 3]);
+pub struct Su2Algebra(pub(crate) [f64; 3]);
+
+impl Su2Algebra {
+    /// Create a new su(2) algebra element from components.
+    ///
+    /// The components `[a, b, c]` correspond to the element
+    /// `(a·iσₓ + b·iσᵧ + c·iσᵤ)/2` in the Pauli basis.
+    #[must_use]
+    pub fn new(components: [f64; 3]) -> Self {
+        Self(components)
+    }
+
+    /// Returns the components as a fixed-size array reference.
+    #[must_use]
+    pub fn components(&self) -> &[f64; 3] {
+        &self.0
+    }
+}
 
 impl Add for Su2Algebra {
     type Output = Self;
@@ -288,9 +305,9 @@ impl LieAlgebra for Su2Algebra {
     /// let bracket = e1.bracket(&e2);          // [e₁, e₂] = -e₃
     ///
     /// // Should give -e₃ = (0, 0, -1)
-    /// assert!((bracket.0[0]).abs() < 1e-10);
-    /// assert!((bracket.0[1]).abs() < 1e-10);
-    /// assert!((bracket.0[2] - (-1.0)).abs() < 1e-10);
+    /// assert!((bracket.components()[0]).abs() < 1e-10);
+    /// assert!((bracket.components()[1]).abs() < 1e-10);
+    /// assert!((bracket.components()[2] - (-1.0)).abs() < 1e-10);
     /// ```
     #[inline]
     fn bracket(&self, other: &Self) -> Self {
@@ -1121,7 +1138,7 @@ impl SemiSimple for SU2 {}
 
 /// su(2) algebra elements are traceless by construction.
 ///
-/// The representation `Su2Algebra([f64; 3])` stores coefficients in the
+/// The representation `Su2Algebra::new([f64; 3])` stores coefficients in the
 /// Pauli basis {iσ₁, iσ₂, iσ₃}. Since each Pauli matrix is traceless,
 /// any linear combination is also traceless.
 ///

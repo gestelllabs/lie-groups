@@ -53,11 +53,11 @@ lie-groups = { version = "0.2", default-features = false }
 use lie_groups::{LieGroup, LieAlgebra, SU2, Su2Algebra};
 
 // Exponential map: algebra → group
-let xi = Su2Algebra([0.1, 0.2, 0.3]);
+let xi = Su2Algebra::new([0.1, 0.2, 0.3]);
 let g = SU2::exp(&xi);
 
 // Group operations — natural operator syntax
-let h = SU2::exp(&Su2Algebra([0.4, 0.0, 0.0]));
+let h = SU2::exp(&Su2Algebra::new([0.4, 0.0, 0.0]));
 let gh = &g * &h;        // group multiplication
 let g_inv = g.inverse();
 
@@ -65,8 +65,8 @@ let g_inv = g.inverse();
 let log_g = SU2::log(&g).unwrap();
 
 // Algebra arithmetic — works like you'd expect
-let x = Su2Algebra([1.0, 0.0, 0.0]);
-let y = Su2Algebra([0.0, 1.0, 0.0]);
+let x = Su2Algebra::new([1.0, 0.0, 0.0]);
+let y = Su2Algebra::new([0.0, 1.0, 0.0]);
 let sum = x + y;           // vector addition
 let scaled = 2.0 * x;      // scalar multiplication
 let diff = x - y;           // subtraction
@@ -107,8 +107,8 @@ Compose Lie algebra elements without passing through the group:
 ```rust
 use lie_groups::{bch_second_order, Su2Algebra};
 
-let x = Su2Algebra([0.1, 0.0, 0.0]);
-let y = Su2Algebra([0.0, 0.1, 0.0]);
+let x = Su2Algebra::new([0.1, 0.0, 0.0]);
+let y = Su2Algebra::new([0.0, 0.1, 0.0]);
 
 // BCH: log(exp(X) · exp(Y)) ≈ X + Y + ½[X,Y] + ...
 let z = bch_second_order(&x, &y);
@@ -122,7 +122,7 @@ Higher orders available via `bch_third_order`, `bch_fourth_order`, `bch_fifth_or
 use lie_groups::{LieGroup, Spin, character_su2, clebsch_gordan_decomposition, SU2, Su2Algebra};
 
 // SU(2) spin-1 character at a group element
-let g = SU2::exp(&Su2Algebra([0.0, 0.0, std::f64::consts::PI / 3.0]));
+let g = SU2::exp(&Su2Algebra::new([0.0, 0.0, std::f64::consts::PI / 3.0]));
 let chi = character_su2(Spin::from_integer(1), &g);
 
 // Clebsch-Gordan: spin-½ ⊗ spin-½ = spin-0 ⊕ spin-1

@@ -64,7 +64,24 @@ use std::ops::{Add, Mul, MulAssign, Neg, Sub};
 /// L_z = (0, 0, 1) ↔ [[0, -1, 0], [1, 0, 0], [0, 0, 0]]
 /// ```
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub struct So3Algebra(pub [f64; 3]);
+pub struct So3Algebra(pub(crate) [f64; 3]);
+
+impl So3Algebra {
+    /// Create a new so(3) algebra element from components.
+    ///
+    /// The components `[x, y, z]` correspond to the antisymmetric matrix
+    /// `[[0, -z, y], [z, 0, -x], [-y, x, 0]]`.
+    #[must_use]
+    pub fn new(components: [f64; 3]) -> Self {
+        Self(components)
+    }
+
+    /// Returns the components as a fixed-size array reference.
+    #[must_use]
+    pub fn components(&self) -> &[f64; 3] {
+        &self.0
+    }
+}
 
 impl Add for So3Algebra {
     type Output = Self;
@@ -196,9 +213,9 @@ impl LieAlgebra for So3Algebra {
     /// let bracket = lx.bracket(&ly);           // (1,0,0) × (0,1,0) = (0,0,1)
     ///
     /// // Should give L_z = (0, 0, 1)
-    /// assert!((bracket.0[0]).abs() < 1e-10);
-    /// assert!((bracket.0[1]).abs() < 1e-10);
-    /// assert!((bracket.0[2] - 1.0).abs() < 1e-10);
+    /// assert!((bracket.components()[0]).abs() < 1e-10);
+    /// assert!((bracket.components()[1]).abs() < 1e-10);
+    /// assert!((bracket.components()[2] - 1.0).abs() < 1e-10);
     /// ```
     #[inline]
     fn bracket(&self, other: &Self) -> Self {
@@ -718,7 +735,7 @@ impl SemiSimple for SO3 {}
 
 /// so(3) algebra elements are traceless by construction.
 ///
-/// The representation `So3Algebra([f64; 3])` stores coefficients for
+/// The representation `So3Algebra::new([f64; 3])` stores coefficients for
 /// 3×3 antisymmetric matrices. All antisymmetric matrices are traceless.
 impl TracelessByConstruction for So3Algebra {}
 
