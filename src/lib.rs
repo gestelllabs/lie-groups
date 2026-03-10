@@ -25,7 +25,7 @@
 //! use lie_groups::{LieGroup, LieAlgebra, SU2, Su2Algebra};
 //!
 //! let g = SU2::identity();
-//! let h = SU2::exp(&Su2Algebra([0.1, 0.2, 0.3]));
+//! let h = SU2::exp(&Su2Algebra::new([0.1, 0.2, 0.3]));
 //! let gh = g.compose(&h);
 //! let inv = h.inverse();
 //! ```
@@ -74,3 +74,9 @@ pub use traits::{
     TracelessByConstruction,
 };
 pub use u1::{U1Algebra, U1};
+
+// Re-export matrix backend types so users can work with return types
+// of `matrix()`, `to_matrix()`, etc. without adding direct dependencies.
+pub use nalgebra::Matrix3;
+pub use ndarray::Array2;
+pub use num_complex::Complex64;
