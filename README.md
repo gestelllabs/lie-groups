@@ -29,7 +29,7 @@ them to be correct.
 - **Numerical robustness** — quaternion-optimized SU(2), Higham inverse-scaling
   logarithm for SU(N), conditioned log with quality diagnostics
 
-370 tests (318 unit + 52 doc) verify algebraic axioms — not just API surface —
+340 tests (288 unit + 52 doc) verify algebraic axioms — not just API surface —
 including exp/log roundtrips, Jacobi identity, bracket bilinearity, and BCH
 convergence across all groups.
 
@@ -91,12 +91,10 @@ Write algorithms once, run on any Lie group:
 ```rust
 use lie_groups::{LieGroup, LieAlgebra, Compact};
 
-/// Geodesic interpolation on any compact Lie group.
-fn geodesic_midpoint<G: LieGroup + Compact>(a: &G, b: &G) -> G {
-    let a_inv = a.inverse();
-    let delta = a_inv.compose(b);
-    let half_log = G::log(&delta).unwrap().scale(0.5);
-    a.compose(&G::exp(&half_log))
+/// Geodesic midpoint on any compact Lie group.
+fn geodesic_midpoint<G: LieGroup + Compact>(a: &G, b: &G) -> Option<G> {
+    // Built-in: γ(t) = g · exp(t · log(g⁻¹h))
+    a.geodesic(b, 0.5)
 }
 ```
 
@@ -114,7 +112,9 @@ let y = Su2Algebra::new([0.0, 0.1, 0.0]);
 let z = bch_second_order(&x, &y);
 ```
 
-Higher orders available via `bch_third_order`, `bch_fourth_order`, `bch_fifth_order`.
+Higher orders via `bch_third_order` through `bch_fifth_order`. Use `bch_checked`
+for runtime convergence validation, or `bch_safe` for automatic fallback to
+direct composition when inputs exceed the convergence radius.
 
 ## Representation theory
 
