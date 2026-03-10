@@ -158,11 +158,12 @@ pub fn bch_is_practical<A: LieAlgebra>(x: &A, y: &A) -> bool {
 /// ```
 #[must_use]
 pub fn bch_second_order<A: LieAlgebra>(x: &A, y: &A) -> A {
-    // Check convergence radius in debug builds
+    // Convergence check: only in debug builds. For runtime-checked version,
+    // use bch_checked() or bch_safe() which validates before computing.
     debug_assert!(
         x.norm() + y.norm() < BCH_PRACTICAL_LIMIT,
         "BCH inputs exceed practical limit: ||X|| + ||Y|| = {} > {}. \
-         Consider using direct composition exp(X)·exp(Y) instead.",
+         Use bch_checked() or bch_safe() for runtime-safe alternatives.",
         x.norm() + y.norm(),
         BCH_PRACTICAL_LIMIT
     );
@@ -220,11 +221,12 @@ pub fn bch_second_order<A: LieAlgebra>(x: &A, y: &A) -> A {
 /// ```
 #[must_use]
 pub fn bch_third_order<A: LieAlgebra>(x: &A, y: &A) -> A {
-    // Check convergence radius in debug builds
+    // Convergence check: only in debug builds. For runtime-checked version,
+    // use bch_checked() or bch_safe() which validates before computing.
     debug_assert!(
         x.norm() + y.norm() < BCH_PRACTICAL_LIMIT,
         "BCH inputs exceed practical limit: ||X|| + ||Y|| = {} > {}. \
-         Consider using direct composition exp(X)·exp(Y) instead.",
+         Use bch_checked() or bch_safe() for runtime-safe alternatives.",
         x.norm() + y.norm(),
         BCH_PRACTICAL_LIMIT
     );
@@ -293,11 +295,12 @@ pub fn bch_third_order<A: LieAlgebra>(x: &A, y: &A) -> A {
 /// ```
 #[must_use]
 pub fn bch_fourth_order<A: LieAlgebra>(x: &A, y: &A) -> A {
-    // Check convergence radius in debug builds
+    // Convergence check: only in debug builds. For runtime-checked version,
+    // use bch_checked() or bch_safe() which validates before computing.
     debug_assert!(
         x.norm() + y.norm() < BCH_PRACTICAL_LIMIT,
         "BCH inputs exceed practical limit: ||X|| + ||Y|| = {} > {}. \
-         Consider using direct composition exp(X)·exp(Y) instead.",
+         Use bch_checked() or bch_safe() for runtime-safe alternatives.",
         x.norm() + y.norm(),
         BCH_PRACTICAL_LIMIT
     );
@@ -369,11 +372,12 @@ pub fn bch_fourth_order<A: LieAlgebra>(x: &A, y: &A) -> A {
 /// ```
 #[must_use]
 pub fn bch_fifth_order<A: LieAlgebra>(x: &A, y: &A) -> A {
-    // Check convergence radius in debug builds
+    // Convergence check: only in debug builds. For runtime-checked version,
+    // use bch_checked() or bch_safe() which validates before computing.
     debug_assert!(
         x.norm() + y.norm() < BCH_PRACTICAL_LIMIT,
         "BCH inputs exceed practical limit: ||X|| + ||Y|| = {} > {}. \
-         Consider using direct composition exp(X)·exp(Y) instead.",
+         Use bch_checked() or bch_safe() for runtime-safe alternatives.",
         x.norm() + y.norm(),
         BCH_PRACTICAL_LIMIT
     );
@@ -467,6 +471,32 @@ pub fn bch_error_bound<A: LieAlgebra>(x: &A, y: &A, order: usize) -> f64 {
 
     // Error bound: C_n · (||X|| + ||Y||)^(n+1)
     coefficient * total_norm.powi((order + 1) as i32)
+}
+
+/// Checked BCH formula: returns `Err` if inputs exceed convergence radius.
+///
+/// Unlike [`bch_second_order`] through [`bch_fifth_order`] (which only check
+/// in debug builds), this function always validates that ||X|| + ||Y|| < log(2)
+/// before computing the series.
+///
+/// # Errors
+///
+/// Returns [`BchError::OutsideConvergenceRadius`] if inputs are too large.
+/// Returns [`BchError::InvalidOrder`] if order is not in 2..=5.
+pub fn bch_checked<A: LieAlgebra>(x: &A, y: &A, order: usize) -> Result<A, BchError> {
+    if !(2..=5).contains(&order) {
+        return Err(BchError::InvalidOrder(order));
+    }
+    if !bch_will_converge(x, y) {
+        return Err(BchError::OutsideConvergenceRadius);
+    }
+    Ok(match order {
+        2 => bch_second_order(x, y),
+        3 => bch_third_order(x, y),
+        4 => bch_fourth_order(x, y),
+        5 => bch_fifth_order(x, y),
+        _ => unreachable!(),
+    })
 }
 
 /// Safe BCH composition with automatic fallback to direct exp(X)·exp(Y).
@@ -620,6 +650,12 @@ where
 pub enum BchError {
     /// BCH order must be 2-5
     InvalidOrder(usize),
+    /// Inputs exceed the strict convergence radius log(2) ≈ 0.693.
+    ///
+    /// The truncated BCH series produces incorrect results outside the
+    /// convergence radius. Use [`bch_safe`] for automatic fallback to
+    /// direct composition, or check with [`bch_will_converge`] first.
+    OutsideConvergenceRadius,
     /// `log()` failed (e.g., result at cut locus)
     LogFailed,
 }
@@ -629,6 +665,13 @@ impl std::fmt::Display for BchError {
         match self {
             BchError::InvalidOrder(order) => {
                 write!(f, "Invalid BCH order {}: must be 2, 3, 4, or 5", order)
+            }
+            BchError::OutsideConvergenceRadius => {
+                write!(
+                    f,
+                    "BCH inputs exceed convergence radius: ||X|| + ||Y|| > log(2) ≈ 0.693. \
+                     Use bch_safe() for automatic fallback."
+                )
             }
             BchError::LogFailed => write!(
                 f,

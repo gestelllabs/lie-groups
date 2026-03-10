@@ -52,7 +52,7 @@ pub mod traits;
 pub mod u1;
 
 pub use bch::{
-    bch_error_bound, bch_fifth_order, bch_fourth_order, bch_is_practical, bch_safe,
+    bch_checked, bch_error_bound, bch_fifth_order, bch_fourth_order, bch_is_practical, bch_safe,
     bch_second_order, bch_split, bch_third_order, bch_will_converge, BchError, BchMethod,
 };
 pub use error::{
