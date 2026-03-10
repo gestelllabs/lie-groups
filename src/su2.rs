@@ -358,7 +358,7 @@ impl crate::Casimir for Su2Algebra {
 /// - Represents rotations and spin transformations
 /// - Acts on spinor fields: ψ → U ψ
 /// - Preserves inner products (unitarity)
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct SU2 {
     /// The 2×2 unitary matrix representation
     pub(crate) matrix: Array2<Complex64>,
@@ -418,8 +418,7 @@ impl SU2 {
     #[inline]
     #[must_use]
     pub fn rotation_x(theta: f64) -> Self {
-        let c = (theta / 2.0).cos();
-        let s = (theta / 2.0).sin();
+        let (s, c) = (theta / 2.0).sin_cos();
 
         let mut matrix = Array2::zeros((2, 2));
         matrix[[0, 0]] = Complex64::new(c, 0.0);
@@ -436,8 +435,7 @@ impl SU2 {
     #[inline]
     #[must_use]
     pub fn rotation_y(theta: f64) -> Self {
-        let c = (theta / 2.0).cos();
-        let s = (theta / 2.0).sin();
+        let (s, c) = (theta / 2.0).sin_cos();
 
         let mut matrix = Array2::zeros((2, 2));
         matrix[[0, 0]] = Complex64::new(c, 0.0);
@@ -454,8 +452,7 @@ impl SU2 {
     #[inline]
     #[must_use]
     pub fn rotation_z(theta: f64) -> Self {
-        let c = (theta / 2.0).cos();
-        let s = (theta / 2.0).sin();
+        let (s, c) = (theta / 2.0).sin_cos();
 
         let mut matrix = Array2::zeros((2, 2));
         matrix[[0, 0]] = Complex64::new(c, s);
@@ -572,12 +569,14 @@ impl SU2 {
     }
 
     /// Act on a 2D vector: ψ → U ψ
+    #[inline]
     #[must_use]
     pub fn act_on_vector(&self, v: &[Complex64; 2]) -> [Complex64; 2] {
-        let vec = Array2::from_shape_vec((2, 1), vec![v[0], v[1]])
-            .expect("Failed to create 2x1 array from 2-element vector");
-        let result = self.matrix.dot(&vec);
-        [result[[0, 0]], result[[1, 0]]]
+        let m = &self.matrix;
+        [
+            m[[0, 0]] * v[0] + m[[0, 1]] * v[1],
+            m[[1, 0]] * v[0] + m[[1, 1]] * v[1],
+        ]
     }
 
     /// Trace of the matrix: Tr(U)
@@ -667,7 +666,9 @@ impl SU2 {
 
     /// Verify this is approximately in SU(2)
     ///
-    /// Checks: U†U ≈ I and |det(U) - 1| ≈ 0
+    /// Checks both:
+    /// - Unitarity: U†U ≈ I
+    /// - Special: |det(U) - 1| < tolerance
     #[must_use]
     pub fn verify_unitarity(&self, tolerance: f64) -> bool {
         // Check U†U = I
@@ -682,32 +683,33 @@ impl SU2 {
             .sum::<f64>()
             .sqrt();
 
-        diff_norm < tolerance
+        if diff_norm >= tolerance {
+            return false;
+        }
+
+        // Check det(U) = 1 (not just unitary, but special unitary)
+        let det =
+            self.matrix[[0, 0]] * self.matrix[[1, 1]] - self.matrix[[0, 1]] * self.matrix[[1, 0]];
+        (det - Complex64::new(1.0, 0.0)).norm() < tolerance
     }
 
     /// Convert to 2×2 array format
     #[must_use]
-    pub fn to_matrix(&self) -> [[num_complex::Complex64; 2]; 2] {
+    pub fn to_matrix(&self) -> [[Complex64; 2]; 2] {
         [
-            [
-                num_complex::Complex64::new(self.matrix[[0, 0]].re, self.matrix[[0, 0]].im),
-                num_complex::Complex64::new(self.matrix[[0, 1]].re, self.matrix[[0, 1]].im),
-            ],
-            [
-                num_complex::Complex64::new(self.matrix[[1, 0]].re, self.matrix[[1, 0]].im),
-                num_complex::Complex64::new(self.matrix[[1, 1]].re, self.matrix[[1, 1]].im),
-            ],
+            [self.matrix[[0, 0]], self.matrix[[0, 1]]],
+            [self.matrix[[1, 0]], self.matrix[[1, 1]]],
         ]
     }
 
     /// Create from 2×2 array format
     #[must_use]
-    pub fn from_matrix(arr: [[num_complex::Complex64; 2]; 2]) -> Self {
+    pub fn from_matrix(arr: [[Complex64; 2]; 2]) -> Self {
         let mut matrix = Array2::zeros((2, 2));
-        matrix[[0, 0]] = Complex64::new(arr[0][0].re, arr[0][0].im);
-        matrix[[0, 1]] = Complex64::new(arr[0][1].re, arr[0][1].im);
-        matrix[[1, 0]] = Complex64::new(arr[1][0].re, arr[1][0].im);
-        matrix[[1, 1]] = Complex64::new(arr[1][1].re, arr[1][1].im);
+        matrix[[0, 0]] = arr[0][0];
+        matrix[[0, 1]] = arr[0][1];
+        matrix[[1, 0]] = arr[1][0];
+        matrix[[1, 1]] = arr[1][1];
         Self { matrix }
     }
 
@@ -994,8 +996,7 @@ impl LieGroup for SU2 {
         let axis = tangent.scale(1.0 / angle);
 
         // Rodrigues formula: exp(i(θ/2)·n̂·σ) = cos(θ/2)I + i·sin(θ/2)·n̂·σ
-        let c = (angle / 2.0).cos();
-        let s = (angle / 2.0).sin();
+        let (s, c) = (angle / 2.0).sin_cos();
 
         let mut matrix = Array2::zeros((2, 2));
         matrix[[0, 0]] = Complex64::new(c, s * axis.0[2]);

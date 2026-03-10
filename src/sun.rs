@@ -504,7 +504,7 @@ impl<const N: usize> LieAlgebra for SunAlgebra<N> {
 /// # Verification
 ///
 /// Use `verify_unitarity()` to check constraints numerically.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct SUN<const N: usize> {
     /// N×N complex unitary matrix
     pub(crate) matrix: Array2<Complex64>,

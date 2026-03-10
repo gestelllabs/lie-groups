@@ -289,8 +289,7 @@ impl SO3 {
     /// ```
     #[must_use]
     pub fn rotation_x(angle: f64) -> Self {
-        let c = angle.cos();
-        let s = angle.sin();
+        let (s, c) = angle.sin_cos();
 
         Self {
             matrix: Matrix3::new(1.0, 0.0, 0.0, 0.0, c, -s, 0.0, s, c),
@@ -304,8 +303,7 @@ impl SO3 {
     /// ```
     #[must_use]
     pub fn rotation_y(angle: f64) -> Self {
-        let c = angle.cos();
-        let s = angle.sin();
+        let (s, c) = angle.sin_cos();
 
         Self {
             matrix: Matrix3::new(c, 0.0, s, 0.0, 1.0, 0.0, -s, 0.0, c),
@@ -319,8 +317,7 @@ impl SO3 {
     /// ```
     #[must_use]
     pub fn rotation_z(angle: f64) -> Self {
-        let c = angle.cos();
-        let s = angle.sin();
+        let (s, c) = angle.sin_cos();
 
         Self {
             matrix: Matrix3::new(c, -s, 0.0, s, c, 0.0, 0.0, 0.0, 1.0),
@@ -346,8 +343,7 @@ impl SO3 {
         let n = [axis[0] / norm, axis[1] / norm, axis[2] / norm];
 
         // Rodrigues formula
-        let c = angle.cos();
-        let s = angle.sin();
+        let (s, c) = angle.sin_cos();
         let t = 1.0 - c;
 
         let matrix = Matrix3::new(
