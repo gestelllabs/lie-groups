@@ -814,7 +814,7 @@ impl SU2 {
     /// if cond.is_well_conditioned() {
     ///     println!("Reliable result: {:?}", log_g);
     /// } else {
-    ///     println!("Warning: condition number = {:.1}", cond.condition_number);
+    ///     println!("Warning: condition number = {:.1}", cond.condition_number());
     /// }
     /// ```
     ///
@@ -2049,7 +2049,7 @@ mod tests {
             "θ = 1 should be well-conditioned"
         );
         assert!(
-            (cond.angle - theta).abs() < 1e-10,
+            (cond.angle() - theta).abs() < 1e-10,
             "reported angle should match"
         );
         assert!((log_g.0[0] - theta).abs() < 1e-10);
@@ -2069,14 +2069,14 @@ mod tests {
         assert!(
             cond.is_well_conditioned(),
             "θ ≈ π should be numerically well-conditioned: κ = {}",
-            cond.condition_number
+            cond.condition_number()
         );
 
         // Distance to cut locus (2π) should be about π
         assert!(
-            (cond.distance_to_cut_locus - (std::f64::consts::PI + 0.01)).abs() < 1e-10,
+            (cond.distance_to_cut_locus() - (std::f64::consts::PI + 0.01)).abs() < 1e-10,
             "distance to cut locus should be ≈ π + 0.01: got {}",
-            cond.distance_to_cut_locus
+            cond.distance_to_cut_locus()
         );
 
         // Result should be correct
@@ -2090,12 +2090,12 @@ mod tests {
         // Small angle θ = 0.5: sin(0.25) ≈ 0.247, κ ≈ 4.0 → Good
         // The condition number tracks stability of axis extraction (dividing by sin(θ/2))
         let cond_small = LogCondition::from_angle(0.5);
-        assert_eq!(cond_small.quality, LogQuality::Good);
-        assert!(cond_small.condition_number > 2.0 && cond_small.condition_number < 10.0);
+        assert_eq!(cond_small.quality(), LogQuality::Good);
+        assert!(cond_small.condition_number() > 2.0 && cond_small.condition_number() < 10.0);
 
         // π/2: sin(π/4) ≈ 0.707, κ ≈ 1.4 → Excellent
         let cond_half_pi = LogCondition::from_angle(std::f64::consts::FRAC_PI_2);
-        assert_eq!(cond_half_pi.quality, LogQuality::Excellent);
+        assert_eq!(cond_half_pi.quality(), LogQuality::Excellent);
         assert!(cond_half_pi.is_well_conditioned());
 
         // Near π: sin((π-0.001)/2) ≈ 1, κ ≈ 1.0 → Excellent (numerically stable)
@@ -2104,7 +2104,7 @@ mod tests {
         assert!(
             cond_near_pi.is_well_conditioned(),
             "Near π should be numerically stable: κ = {}",
-            cond_near_pi.condition_number
+            cond_near_pi.condition_number()
         );
 
         // Near zero: sin(0.001/2) ≈ 0.0005, κ ≈ 2000 → AtSingularity
@@ -2113,7 +2113,7 @@ mod tests {
         assert!(
             !cond_near_zero.is_well_conditioned(),
             "Near zero should have poor conditioning: κ = {}",
-            cond_near_zero.condition_number
+            cond_near_zero.condition_number()
         );
     }
 

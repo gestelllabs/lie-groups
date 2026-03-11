@@ -191,7 +191,7 @@ pub type RepresentationResult<T> = Result<T, RepresentationError>;
 ///     // Safe to use log_u
 /// } else if cond.is_usable() {
 ///     // Use with caution, reduced precision
-///     eprintln!("Warning: log condition number = {:.1}", cond.condition_number);
+///     eprintln!("Warning: log condition number = {:.1}", cond.condition_number());
 /// } else {
 ///     // Result unreliable
 ///     return Err(...);
@@ -203,21 +203,21 @@ pub struct LogCondition {
     ///
     /// For SU(2), this is approximately 1/sin(θ/2) for rotation angle θ,
     /// which diverges as θ → π (approaching the cut locus at -I).
-    pub condition_number: f64,
+    condition_number: f64,
 
     /// Rotation angle (for SO(3)/SU(2)) or equivalent metric.
     ///
     /// Useful for understanding why conditioning is poor.
-    pub angle: f64,
+    angle: f64,
 
     /// Distance from the cut locus (θ = 2π for SU(2), θ = π for SO(3)).
     ///
     /// Values close to 0 indicate the element is near the cut locus
     /// where the logarithm is ill-defined or ill-conditioned.
-    pub distance_to_cut_locus: f64,
+    distance_to_cut_locus: f64,
 
     /// Quality assessment of the logarithm computation.
-    pub quality: LogQuality,
+    quality: LogQuality,
 }
 
 /// Quality levels for logarithm computations.
@@ -287,6 +287,30 @@ impl LogCondition {
         }
     }
 
+    /// Returns the condition number κ.
+    #[must_use]
+    pub fn condition_number(&self) -> f64 {
+        self.condition_number
+    }
+
+    /// Returns the rotation angle θ.
+    #[must_use]
+    pub fn angle(&self) -> f64 {
+        self.angle
+    }
+
+    /// Returns the distance from the cut locus.
+    #[must_use]
+    pub fn distance_to_cut_locus(&self) -> f64 {
+        self.distance_to_cut_locus
+    }
+
+    /// Returns the quality assessment.
+    #[must_use]
+    pub fn quality(&self) -> LogQuality {
+        self.quality
+    }
+
     /// Returns true if the result is well-conditioned (κ < 10).
     #[must_use]
     pub fn is_well_conditioned(&self) -> bool {
@@ -332,32 +356,32 @@ mod tests {
         let cond_pi_2 = LogCondition::from_angle(PI / 2.0);
         let expected = 1.0 / (PI / 4.0).sin();
         assert!(
-            (cond_pi_2.condition_number - expected).abs() < 1e-10,
+            (cond_pi_2.condition_number() - expected).abs() < 1e-10,
             "θ=π/2: got {}, expected {}",
-            cond_pi_2.condition_number,
+            cond_pi_2.condition_number(),
             expected
         );
-        assert_eq!(cond_pi_2.quality, LogQuality::Excellent);
+        assert_eq!(cond_pi_2.quality(), LogQuality::Excellent);
 
         // For θ = π/3, κ = 1/sin(π/6) = 2.0 (at boundary, classified as Good)
         let cond_pi_3 = LogCondition::from_angle(PI / 3.0);
         let expected = 1.0 / (PI / 6.0).sin();
         assert!(
-            (cond_pi_3.condition_number - expected).abs() < 1e-10,
+            (cond_pi_3.condition_number() - expected).abs() < 1e-10,
             "θ=π/3: got {}, expected {}",
-            cond_pi_3.condition_number,
+            cond_pi_3.condition_number(),
             expected
         );
         // κ = 2.0 exactly, which is at the boundary (κ < 2 is Excellent, κ ≥ 2 is Good)
-        assert_eq!(cond_pi_3.quality, LogQuality::Good);
+        assert_eq!(cond_pi_3.quality(), LogQuality::Good);
 
         // For θ = 0.1, κ = 1/sin(0.05) ≈ 20.0
         let cond_small = LogCondition::from_angle(0.1);
         let expected = 1.0 / (0.05_f64).sin();
         assert!(
-            (cond_small.condition_number - expected).abs() < 1e-8,
+            (cond_small.condition_number() - expected).abs() < 1e-8,
             "θ=0.1: got {}, expected {}",
-            cond_small.condition_number,
+            cond_small.condition_number(),
             expected
         );
     }
@@ -367,30 +391,30 @@ mod tests {
     fn test_quality_classification() {
         // Excellent: κ < 2 → need sin(θ/2) > 0.5 → θ/2 > π/6 → θ > π/3
         let excellent = LogCondition::from_angle(PI * 0.7); // θ/2 = 0.35π, sin ≈ 0.89
-        assert_eq!(excellent.quality, LogQuality::Excellent);
+        assert_eq!(excellent.quality(), LogQuality::Excellent);
         assert!(excellent.is_well_conditioned());
         assert!(excellent.is_usable());
 
         // Good: 2 ≤ κ < 10 → 0.1 < sin(θ/2) ≤ 0.5
         let good = LogCondition::from_angle(PI * 0.3); // θ/2 = 0.15π, sin ≈ 0.45
-        assert_eq!(good.quality, LogQuality::Good);
+        assert_eq!(good.quality(), LogQuality::Good);
         assert!(good.is_well_conditioned());
 
         // Acceptable: 10 ≤ κ < 100 → 0.01 < sin(θ/2) ≤ 0.1
         let acceptable = LogCondition::from_angle(0.1); // θ/2 = 0.05, sin ≈ 0.05
-        assert_eq!(acceptable.quality, LogQuality::Acceptable);
+        assert_eq!(acceptable.quality(), LogQuality::Acceptable);
         assert!(!acceptable.is_well_conditioned());
         assert!(acceptable.is_usable());
 
         // Poor: 100 ≤ κ < 1000 → 0.001 < sin(θ/2) ≤ 0.01
         let poor = LogCondition::from_angle(0.01); // θ/2 = 0.005, sin ≈ 0.005
-        assert_eq!(poor.quality, LogQuality::Poor);
+        assert_eq!(poor.quality(), LogQuality::Poor);
         assert!(!poor.is_well_conditioned());
         assert!(!poor.is_usable());
 
         // AtSingularity: κ ≥ 1000 → sin(θ/2) ≤ 0.001
         let singular = LogCondition::from_angle(0.001); // θ/2 = 0.0005, sin ≈ 0.0005
-        assert_eq!(singular.quality, LogQuality::AtSingularity);
+        assert_eq!(singular.quality(), LogQuality::AtSingularity);
         assert!(singular.is_singular());
     }
 
@@ -402,21 +426,21 @@ mod tests {
         // At θ = π/2, distance to cut locus = 2π - π/2 = 3π/2
         let cond = LogCondition::from_angle(PI / 2.0);
         assert!(
-            (cond.distance_to_cut_locus - 3.0 * PI / 2.0).abs() < 1e-10,
+            (cond.distance_to_cut_locus() - 3.0 * PI / 2.0).abs() < 1e-10,
             "Distance to cut locus mismatch"
         );
 
         // At θ = 2π - 0.1, distance = 0.1
         let cond_near = LogCondition::from_angle(2.0 * PI - 0.1);
         assert!(
-            (cond_near.distance_to_cut_locus - 0.1).abs() < 1e-10,
+            (cond_near.distance_to_cut_locus() - 0.1).abs() < 1e-10,
             "Near cut locus distance mismatch"
         );
 
         // At θ ≈ 0, distance ≈ 2π
         let cond_far = LogCondition::from_angle(0.01);
         assert!(
-            (cond_far.distance_to_cut_locus - (2.0 * PI - 0.01)).abs() < 1e-10,
+            (cond_far.distance_to_cut_locus() - (2.0 * PI - 0.01)).abs() < 1e-10,
             "Far from cut locus distance mismatch"
         );
     }
@@ -436,17 +460,17 @@ mod tests {
 
             // Condition number should increase monotonically as angle decreases
             assert!(
-                cond.condition_number > prev_kappa,
+                cond.condition_number() > prev_kappa,
                 "Condition number should increase as θ→0: θ={}, κ={}",
                 angle,
-                cond.condition_number
+                cond.condition_number()
             );
-            prev_kappa = cond.condition_number;
+            prev_kappa = cond.condition_number();
         }
 
         // At θ = 1e-11, should be effectively singular
         let cond_singular = LogCondition::from_angle(1e-11);
-        assert_eq!(cond_singular.quality, LogQuality::AtSingularity);
+        assert_eq!(cond_singular.quality(), LogQuality::AtSingularity);
     }
 
     /// Verify behavior near θ = π and θ = 2π
@@ -458,11 +482,11 @@ mod tests {
         // At θ = π, κ = 1/sin(π/2) = 1 (well-conditioned!)
         let cond_pi = LogCondition::from_angle(PI);
         assert!(
-            (cond_pi.condition_number - 1.0).abs() < 1e-10,
+            (cond_pi.condition_number() - 1.0).abs() < 1e-10,
             "At θ=π, κ should be 1: got {}",
-            cond_pi.condition_number
+            cond_pi.condition_number()
         );
-        assert_eq!(cond_pi.quality, LogQuality::Excellent);
+        assert_eq!(cond_pi.quality(), LogQuality::Excellent);
 
         // At θ = π - 0.1, still well-conditioned
         let cond_near_pi = LogCondition::from_angle(PI - 0.1);
@@ -470,15 +494,15 @@ mod tests {
 
         // Distance to cut locus at θ = π should be π (since cut locus is at 2π)
         assert!(
-            (cond_pi.distance_to_cut_locus - PI).abs() < 1e-10,
+            (cond_pi.distance_to_cut_locus() - PI).abs() < 1e-10,
             "Distance to cut locus at θ=π should be π: got {}",
-            cond_pi.distance_to_cut_locus
+            cond_pi.distance_to_cut_locus()
         );
 
         // At θ = 2π, distance to cut locus should be 0
         let cond_2pi = LogCondition::from_angle(2.0 * PI);
         assert!(
-            cond_2pi.distance_to_cut_locus < 1e-10,
+            cond_2pi.distance_to_cut_locus() < 1e-10,
             "Distance to cut locus at θ=2π should be 0"
         );
     }
@@ -498,36 +522,40 @@ mod tests {
 
         // For θ = π/2: κ ≈ 1.41, expect ~0 digits lost
         let cond_good = LogCondition::from_angle(PI / 2.0);
-        let expected_error = cond_good.condition_number * machine_eps;
-        let digits_lost = cond_good.condition_number.log10();
+        let expected_error = cond_good.condition_number() * machine_eps;
+        let digits_lost = cond_good.condition_number().log10();
         assert!(digits_lost < 1.0, "Should lose < 1 digit at θ=π/2");
         println!(
             "θ=π/2: κ={:.2}, expected error={:.2e}, digits lost={:.2}",
-            cond_good.condition_number, expected_error, digits_lost
+            cond_good.condition_number(),
+            expected_error,
+            digits_lost
         );
 
         // For θ = 0.1: κ ≈ 20, expect ~1.3 digits lost
         let cond_moderate = LogCondition::from_angle(0.1);
-        let digits_lost = cond_moderate.condition_number.log10();
+        let digits_lost = cond_moderate.condition_number().log10();
         assert!(
             digits_lost > 1.0 && digits_lost < 2.0,
             "Should lose ~1-2 digits at θ=0.1"
         );
         println!(
             "θ=0.1: κ={:.2}, digits lost={:.2}",
-            cond_moderate.condition_number, digits_lost
+            cond_moderate.condition_number(),
+            digits_lost
         );
 
         // For θ = 0.01: κ ≈ 200, expect ~2.3 digits lost
         let cond_poor = LogCondition::from_angle(0.01);
-        let digits_lost = cond_poor.condition_number.log10();
+        let digits_lost = cond_poor.condition_number().log10();
         assert!(
             digits_lost > 2.0 && digits_lost < 3.0,
             "Should lose ~2-3 digits at θ=0.01"
         );
         println!(
             "θ=0.01: κ={:.2}, digits lost={:.2}",
-            cond_poor.condition_number, digits_lost
+            cond_poor.condition_number(),
+            digits_lost
         );
     }
 

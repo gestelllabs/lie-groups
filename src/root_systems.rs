@@ -63,7 +63,7 @@ use std::fmt::{self, Write};
 #[derive(Debug, Clone, PartialEq)]
 pub struct Root {
     /// Coordinates in ℝⁿ (n = rank of Lie algebra)
-    pub coords: Vec<f64>,
+    pub(crate) coords: Vec<f64>,
 }
 
 impl Root {
@@ -71,6 +71,12 @@ impl Root {
     #[must_use]
     pub fn new(coords: Vec<f64>) -> Self {
         Self { coords }
+    }
+
+    /// Returns the coordinate vector of this root.
+    #[must_use]
+    pub fn coords(&self) -> &[f64] {
+        &self.coords
     }
 
     /// Rank of the Lie algebra (dimension of Cartan subalgebra).

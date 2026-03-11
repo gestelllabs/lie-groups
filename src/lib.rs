@@ -74,9 +74,3 @@ pub use traits::{
     TracelessByConstruction,
 };
 pub use u1::{U1Algebra, U1};
-
-// Re-export matrix backend types so users can work with return types
-// of `matrix()`, `to_matrix()`, etc. without adding direct dependencies.
-pub use nalgebra::Matrix3;
-pub use ndarray::Array2;
-pub use num_complex::Complex64;
