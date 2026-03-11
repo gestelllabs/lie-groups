@@ -9,6 +9,7 @@ description = "Lie groups and Lie algebras for computational mathematics"
 repository = "https://github.com/gestelllabs/lie-groups"
 keywords = ["lie-group", "lie-algebra", "rotation", "representation", "bch"]
 categories = ["mathematics", "science"]
+readme = "README.md"
 
 [features]
 default = ["rand"]

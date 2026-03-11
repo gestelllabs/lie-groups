@@ -29,7 +29,7 @@ them to be correct.
 - **Numerical robustness** — quaternion-optimized SU(2), Higham inverse-scaling
   logarithm for SU(N), conditioned log with quality diagnostics
 
-340 tests (288 unit + 52 doc) verify algebraic axioms — not just API surface —
+342 tests (290 unit + 52 doc) verify algebraic axioms — not just API surface —
 including exp/log roundtrips, Jacobi identity, bracket bilinearity, and BCH
 convergence across all groups.
 
