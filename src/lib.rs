@@ -34,7 +34,7 @@
 //!
 //! - **Quaternion-optimized SU(2)**: Rotation operations via unit quaternions
 //! - **Baker-Campbell-Hausdorff**: Lie algebra composition up to 5th order
-//! - **Root systems**: Cartan-Killing classification (A–G families)
+//! - **Root systems**: Type Aₙ (other families planned)
 //! - **Representation theory**: Casimir operators, characters, Clebsch-Gordan
 //! - **Numerical stability**: Conditioned logarithms, scaling-and-squaring exp
 

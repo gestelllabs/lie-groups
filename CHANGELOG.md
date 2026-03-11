@@ -2,15 +2,33 @@
 
 ## 0.2.0
 
-- Renamed `adjoint()` to `conjugate_transpose()`, `DIM` to `MATRIX_DIM`
-- Made matrix and algebra fields private with public accessors
+### Breaking Changes
+
+- Renamed `adjoint()` → `conjugate_transpose()`, `DIM` → `MATRIX_DIM`
+- Made matrix and algebra fields `pub(crate)` with public accessors
 - Made `Root.coords` private; use `Root::coords()` accessor instead
 - Made `LogCondition` fields private; use accessor methods instead
-- Removed dependency re-exports (`Array2`, `Matrix3`, `Complex64`) from public API
 - Removed `dim()` and `trace()` from traits (inherent methods remain)
-- Added `LieGroup::geodesic()`, `bch_checked()`, `approx` impls for all algebras
+- Removed dependency re-exports (`Array2`, `Matrix3`, `Complex64`) from public API;
+  import from `nalgebra`, `ndarray`, `num_complex` directly
 - Added `Debug + PartialEq` supertraits on `LieAlgebra`, `Debug` on `LieGroup`
-- Fixed SU(N) exp() reorthogonalization, SU2 det check, heap allocations
+
+### Added
+
+- `LieGroup::geodesic()` for geodesic interpolation on compact groups
+- `bch_checked()` with runtime convergence validation
+- `approx::AbsDiffEq` / `RelativeEq` impls for all algebra types
+
+### Fixed
+
+- SU(N) `exp()` reorthogonalization for improved unitarity
+- SU(2) determinant check reliability
+- Reduced heap allocations in algebra arithmetic
+- Documentation: inner product is coefficient dot product, not Killing form
+- Documentation: root systems limited to type Aₙ (not A–G)
+
+### Infrastructure
+
 - CI: cargo-audit, cargo-deny, cargo-semver-checks, dependabot
 
 ## 0.1.0

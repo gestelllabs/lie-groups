@@ -165,7 +165,7 @@ mod sealed {
     // Sealed trait implementations
     // =========================================================================
 
-    // Compact groups (all our groups are compact)
+    // Compact groups (R⁺ is non-compact, hence excluded)
     impl SealedCompact for SU2 {}
     impl SealedCompact for SU3 {}
     impl SealedCompact for U1 {}
@@ -438,10 +438,11 @@ pub trait LieAlgebra: Clone + Sized + std::fmt::Debug + PartialEq {
     ///
     /// # Convergence Bounds
     ///
-    /// The BCH convergence radius `||X|| + ||Y|| < log(2)` was derived using
-    /// the operator norm. Since `||X||_op ≤ ||X||_F = √2 · ||X||_coeff`,
-    /// the coefficient norm gives a conservative (safe) convergence check:
-    /// if `x.norm() + y.norm() < log(2)`, the BCH series converges.
+    /// The BCH convergence radius `||X||_op + ||Y||_op < log(2)` uses the
+    /// operator norm. Since `||X||_op ≤ ||X||_F` and `||X||_F` is proportional
+    /// to the coefficient norm (with a constant depending on basis normalization),
+    /// `x.norm() + y.norm() < log(2)` provides a sufficient (conservative)
+    /// convergence check for standard normalizations (tr(TₐTᵦ) = ½δₐᵦ).
     ///
     /// # Returns
     ///
@@ -578,24 +579,12 @@ pub trait LieAlgebra: Clone + Sized + std::fmt::Debug + PartialEq {
     #[must_use]
     fn bracket(&self, other: &Self) -> Self;
 
-    /// Inner product: ⟨v, w⟩
+    /// Inner product on coefficient space: ⟨v, w⟩ = Σᵢ vᵢ wᵢ
     ///
-    /// The inner product induced by the Killing form (or Frobenius norm for
-    /// matrix Lie algebras). For an orthonormal basis {eᵢ}:
-    /// ```text
-    /// ⟨v, w⟩ = Σᵢ vᵢ wᵢ
-    /// ```
-    ///
-    /// # Numerical Stability
-    ///
-    /// This method provides a numerically stable inner product computation.
-    /// The default implementation uses `to_components()` for direct summation,
-    /// avoiding the catastrophic cancellation issues of the polarization identity.
-    ///
-    /// # Returns
-    ///
-    /// The inner product as a real number. For orthonormal bases, this equals
-    /// the dot product of the coefficient vectors.
+    /// This is the Euclidean dot product on basis coefficients, **not** the
+    /// Killing form B(X,Y) = tr(ad X · ad Y). The two are proportional for
+    /// semisimple algebras (e.g., B = −4⟨·,·⟩ for su(2) with the iσ/2 basis),
+    /// but this method always returns the coefficient dot product.
     ///
     /// # Default Implementation
     ///
