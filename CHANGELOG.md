@@ -28,6 +28,16 @@ Format follows [Keep a Changelog](https://keepachangelog.com/).
 - Re-exports of `nalgebra::Matrix3`, `ndarray::Array2`, `num_complex::Complex64`
   — import these from their own crates
 
+**Basis normalization unified:**
+- SU(3) and SU(N) now use generators Tₐ = iλₐ/2 with tr(Tₐ†Tᵦ) = ½δₐᵦ,
+  matching SU(2). Previously SU(3) and SU(N) used Tₐ = iλₐ with tr = 2δ.
+- `Su3Algebra::to_matrix()` and `SunAlgebra::to_matrix()` produce matrices
+  that are ½× what they were in 0.1. `from_matrix()` compensates.
+- `Su3Algebra::bracket()` coefficients are ½× what they were (factor −1 vs −2).
+- SU(N) antisymmetric generators now follow standard Gell-Mann sign convention.
+- Migration: if you passed raw coefficients and compared matrix entries, your
+  expected values will change by a factor of 2.
+
 **New trait bounds:**
 - `LieAlgebra` now requires `Debug + PartialEq`
 - `LieGroup` now requires `Debug`
@@ -76,4 +86,4 @@ Initial release.
 - Representation theory: characters, Clebsch-Gordan (SU(2)), Casimir operators
 - Root systems (type Aₙ), Weyl chambers, weight lattices
 - Quaternion-optimized SU(2), Higham log for SU(N)
-- 340 tests (288 unit + 52 doc)
+- Comprehensive test suite covering algebraic axioms, exp/log roundtrips, and BCH convergence

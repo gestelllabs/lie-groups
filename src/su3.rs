@@ -244,9 +244,9 @@ impl LieAlgebra for Su3Algebra {
     ///
     /// # Mathematical Formula
     ///
-    /// For X = i·∑ᵢ aᵢ·λᵢ and Y = i·∑ⱼ bⱼ·λⱼ:
+    /// For X = i·∑ᵢ aᵢ·(λᵢ/2) and Y = i·∑ⱼ bⱼ·(λⱼ/2):
     /// ```text
-    /// [X, Y] = -2i·∑ₖ (∑ᵢⱼ aᵢ·bⱼ·fᵢⱼₖ)·λₖ
+    /// [X, Y] = -i·∑ₖ (∑ᵢⱼ aᵢ·bⱼ·fᵢⱼₖ)·(λₖ/2)
     /// ```
     ///
     /// # Performance
@@ -309,9 +309,10 @@ impl LieAlgebra for Su3Algebra {
             result[k] += self.0[i] * other.0[j] * f;
         }
 
-        // Apply -2 factor from [X,Y] = -2i Σ f_ijk X_i Y_j T_k
+        // Apply -1 factor from [X,Y] = -i Σ f_ijk X_i Y_j (λ_k/2)
+        // With T_k = iλ_k/2, the bracket coefficient is -Σ f_ijk x_i y_j
         for r in &mut result {
-            *r *= -2.0;
+            *r *= -1.0;
         }
 
         Self(result)
@@ -387,14 +388,15 @@ impl crate::Casimir for Su3Algebra {
 impl Su3Algebra {
     /// Convert algebra element to 3×3 anti-Hermitian matrix
     ///
-    /// Returns X = i·∑ⱼ aⱼ·λⱼ where λⱼ are Gell-Mann matrices
+    /// Returns X = i·∑ⱼ aⱼ·(λⱼ/2) where λⱼ are Gell-Mann matrices.
+    /// Convention: tr(Tₐ†Tᵦ) = ½δₐᵦ where Tₐ = iλₐ/2.
     #[must_use]
     pub fn to_matrix(&self) -> Array2<Complex64> {
         let [a1, a2, a3, a4, a5, a6, a7, a8] = self.0;
         let i = Complex64::new(0.0, 1.0);
         let sqrt3_inv = 1.0 / 3_f64.sqrt();
 
-        // Build i·∑ⱼ aⱼ·λⱼ
+        // Build i·∑ⱼ aⱼ·λⱼ (then apply /2 at the end)
         let mut matrix = Array2::zeros((3, 3));
 
         // λ₁ = [[0,1,0],[1,0,0],[0,0,0]]
@@ -430,6 +432,8 @@ impl Su3Algebra {
         matrix[[1, 1]] += i * a8 * sqrt3_inv;
         matrix[[2, 2]] += -i * a8 * sqrt3_inv * 2.0;
 
+        // Apply /2 for tr(Tₐ†Tᵦ) = ½δₐᵦ convention
+        matrix.mapv_inplace(|z| z * 0.5);
         matrix
     }
 
@@ -437,15 +441,15 @@ impl Su3Algebra {
     ///
     /// Inverse of `to_matrix()`. Uses the normalization Tr(λⱼ λₖ) = 2δⱼₖ.
     ///
-    /// Given X = i·∑ⱼ aⱼ·λⱼ, we have Tr(X·λⱼ) = i·2·aⱼ, so aⱼ = -i/2·Tr(X·λⱼ).
+    /// Given X = i·∑ⱼ aⱼ·(λⱼ/2), we have Tr(X·λⱼ) = i·aⱼ, so aⱼ = -i·Tr(X·λⱼ).
     #[must_use]
     pub fn from_matrix(matrix: &Array2<Complex64>) -> Self {
         let i = Complex64::new(0.0, 1.0);
-        let neg_i_half = -i / 2.0;
+        let neg_i = -i;
 
         let mut coeffs = [0.0; 8];
 
-        // For each Gell-Mann matrix, compute aⱼ = -i/2·Tr(X·λⱼ)
+        // For each Gell-Mann matrix, compute aⱼ = -i·Tr(X·λⱼ)
         for j in 0..8 {
             let lambda_j = Self::gell_mann_matrix(j);
             let product = matrix.dot(&lambda_j);
@@ -453,8 +457,8 @@ impl Su3Algebra {
             // Compute trace
             let trace = product[[0, 0]] + product[[1, 1]] + product[[2, 2]];
 
-            // Extract coefficient: aⱼ = -i/2·Tr(X·λⱼ)
-            coeffs[j] = (neg_i_half * trace).re;
+            // Extract coefficient: aⱼ = -i·Tr(X·λⱼ)
+            coeffs[j] = (neg_i * trace).re;
         }
 
         Self(coeffs)
@@ -1292,28 +1296,28 @@ mod tests {
     fn test_structure_constants_bracket() {
         use crate::traits::LieAlgebra;
 
-        // Test [λ₁, λ₂] = 2i·λ₃ ⟹ coefficients: [λ₁, λ₂] has c₃ ≠ 0
-        let lambda1 = Su3Algebra::basis_element(0);
-        let lambda2 = Su3Algebra::basis_element(1);
-        let bracket = lambda1.bracket(&lambda2);
+        // [T₁, T₂] = -T₃ where Tₐ = iλₐ/2
+        let t1 = Su3Algebra::basis_element(0);
+        let t2 = Su3Algebra::basis_element(1);
+        let bracket = t1.bracket(&t2);
 
-        // Should get result with λ₃ component (index 2)
-        assert_relative_eq!(bracket.0[2], -2.0, epsilon = 1e-10); // Factor of -2 from formula
+        // Component 2 (T₃) should be -1, all others zero
+        assert_relative_eq!(bracket.0[2], -1.0, epsilon = 1e-10);
         for i in [0, 1, 3, 4, 5, 6, 7] {
             assert_relative_eq!(bracket.0[i], 0.0, epsilon = 1e-10);
         }
 
-        // Test antisymmetry: [λ₂, λ₁] = -[λ₁, λ₂]
-        let bracket_reversed = lambda2.bracket(&lambda1);
+        // Antisymmetry: [T₂, T₁] = -[T₁, T₂]
+        let bracket_reversed = t2.bracket(&t1);
         for i in 0..8 {
             assert_relative_eq!(bracket.0[i], -bracket_reversed.0[i], epsilon = 1e-10);
         }
 
-        // Test [λ₄, λ₅] = 2i·(√3/2)·λ₈ ⟹ coefficient c₈ = -√3
-        let lambda4 = Su3Algebra::basis_element(3);
-        let lambda5 = Su3Algebra::basis_element(4);
-        let bracket_45 = lambda4.bracket(&lambda5);
-        let expected_c8 = -2.0 * (3.0_f64.sqrt() / 2.0);
+        // [T₄, T₅]: coefficient c₈ = -f₃₄₇ = -√3/2
+        let t4 = Su3Algebra::basis_element(3);
+        let t5 = Su3Algebra::basis_element(4);
+        let bracket_45 = t4.bracket(&t5);
+        let expected_c8 = -(3.0_f64.sqrt() / 2.0);
         assert_relative_eq!(bracket_45.0[7], expected_c8, epsilon = 1e-10);
     }
 

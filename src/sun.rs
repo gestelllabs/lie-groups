@@ -81,7 +81,7 @@ use std::ops::{Add, Mul, MulAssign, Neg, Sub};
 ///    - λᵢⱼ with i < j: has 1 at (i,j) and (j,i)
 ///
 /// 2. **Antisymmetric generators** (N(N-1)/2 elements):
-///    - λᵢⱼ with i < j: has i at (i,j) and -i at (j,i)
+///    - λᵢⱼ with i < j: has -i at (i,j) and +i at (j,i)
 ///
 /// 3. **Diagonal generators** (N-1 elements):
 ///    - λₖ diagonal with first k entries = 1, (k+1)-th entry = -k
@@ -144,9 +144,10 @@ impl<const N: usize> SunAlgebra<N> {
         &self.coefficients
     }
 
-    /// Convert to N×N anti-Hermitian matrix: X = i·∑ⱼ aⱼ·λⱼ
+    /// Convert to N×N anti-Hermitian matrix: X = i·∑ⱼ aⱼ·(λⱼ/2)
     ///
     /// This is the fundamental representation in ℂᴺˣᴺ.
+    /// Convention: tr(Tₐ†Tᵦ) = ½δₐᵦ where Tₐ = iλₐ/2.
     ///
     /// # Performance
     ///
@@ -158,9 +159,9 @@ impl<const N: usize> SunAlgebra<N> {
     ///
     /// Given coefficients [a₁, ..., a_{N²-1}], returns:
     /// ```text
-    /// X = i·∑ⱼ aⱼ·λⱼ
+    /// X = i·∑ⱼ aⱼ·(λⱼ/2)
     /// ```
-    /// where λⱼ are the generalized Gell-Mann matrices.
+    /// where λⱼ are the generalized Gell-Mann matrices with tr(λₐλᵦ) = 2δₐᵦ.
     #[must_use]
     pub fn to_matrix(&self) -> Array2<Complex64> {
         let mut matrix = Array2::zeros((N, N));
@@ -179,11 +180,13 @@ impl<const N: usize> SunAlgebra<N> {
         }
 
         // Antisymmetric generators: (i,j) with i < j
+        // Standard Gell-Mann: Λ^A_{ij} = -iE_{ij} + iE_{ji}
+        // T = iΛ/2 gives +coeff/2 (real) at (row,col), -coeff/2 at (col,row)
         for row in 0..N {
             for col in (row + 1)..N {
                 let coeff = self.coefficients[idx];
-                matrix[[row, col]] += Complex64::new(-coeff, 0.0); // -coeff (real)
-                matrix[[col, row]] += Complex64::new(coeff, 0.0); // +coeff (real)
+                matrix[[row, col]] += Complex64::new(coeff, 0.0); // +coeff (real)
+                matrix[[col, row]] += Complex64::new(-coeff, 0.0); // -coeff (real)
                 idx += 1;
             }
         }
@@ -211,6 +214,8 @@ impl<const N: usize> SunAlgebra<N> {
             idx += 1;
         }
 
+        // Apply /2 for tr(Tₐ†Tᵦ) = ½δₐᵦ convention
+        matrix.mapv_inplace(|z| z * 0.5);
         matrix
     }
 
@@ -229,25 +234,29 @@ impl<const N: usize> SunAlgebra<N> {
         let mut coefficients = vec![0.0; Self::DIM];
         let mut idx = 0;
 
+        // Convention: X = i·∑ aⱼ·(λⱼ/2), so matrix entries are half
+        // what they would be for the raw Gell-Mann basis.
+        // We extract by reading the matrix and multiplying by 2.
+
         // Extract symmetric components
+        // λ has 1 at (row,col) and (col,row)
+        // X[row,col] = i·a/2, so a = 2·Im(X[row,col])
         for row in 0..N {
             for col in (row + 1)..N {
-                // λ has 1 at (row,col) and (col,row)
-                // i·λ·a has i·a at those positions
-                // X = i·∑ aⱼ·λⱼ, so X[row,col] = i·a
                 let val = matrix[[row, col]];
-                coefficients[idx] = val.im; // Extract imaginary part
+                coefficients[idx] = val.im * 2.0;
                 idx += 1;
             }
         }
 
         // Extract antisymmetric components
+        // Standard Gell-Mann: Λ^A has -i at (row,col), +i at (col,row)
+        // T = iΛ/2 gives +a/2 (real) at (row,col)
+        // so a = 2·Re(X[row,col])
         for row in 0..N {
             for col in (row + 1)..N {
-                // λ has i at (row,col) and -i at (col,row)
-                // i·λ·a = -a at (row,col), +a at (col,row)
                 let val = matrix[[row, col]];
-                coefficients[idx] = -val.re; // Extract real part, negate
+                coefficients[idx] = val.re * 2.0;
                 idx += 1;
             }
         }
@@ -259,27 +268,22 @@ impl<const N: usize> SunAlgebra<N> {
         //   - entry [[k+1, k+1]] = -(k+1) * scale_k
         //   - normalized so Tr(H_k²) = 2
         //
-        // To extract coefficient a_k, use: a_k = Im(Tr(X · H_k)) / 2
-        // where Tr(X · H_k) = Σ_j X[[j,j]] * H_k[[j,j]]
+        // With /2 convention: X_diag = i·a_k·(H_k/2)
+        // So a_k = Im(Tr(X · H_k)) / (Tr(H_k²)/2) = Im(Tr(X · H_k))
         for k in 0..(N - 1) {
             let k_f = k as f64;
             let normalization = 2.0 / ((k_f + 1.0) * (k_f + 2.0));
             let scale = normalization.sqrt();
 
-            // Compute inner product: Tr(X · H_k)
             let mut trace_prod = Complex64::new(0.0, 0.0);
-
-            // Entries 0..=k contribute +scale
             for j in 0..=k {
                 trace_prod += matrix[[j, j]] * scale;
             }
-
-            // Entry k+1 contributes -(k+1)*scale
             trace_prod += matrix[[k + 1, k + 1]] * (-(k_f + 1.0) * scale);
 
-            // a_k = Im(Tr(X · H_k)) / 2
-            // (The /2 comes from Tr(H_k²) = 2 normalization)
-            coefficients[idx] = trace_prod.im / 2.0;
+            // With /2 convention, the extraction formula becomes Im(Tr(X·H_k))
+            // since X = i·a·H_k/2 gives Tr(X·H_k) = i·a·Tr(H_k²)/2 = i·a
+            coefficients[idx] = trace_prod.im;
             idx += 1;
         }
 
@@ -1171,6 +1175,463 @@ pub type SU5 = SUN<5>;
 mod tests {
     use super::*;
     use approx::assert_relative_eq;
+    // ========================================================================
+    // Cross-implementation consistency: SUN<2> vs SU2, SUN<3> vs SU3
+    // ========================================================================
+
+    /// SPEC: Same coefficients in Su2Algebra and SunAlgebra<2> must produce
+    /// the same matrix, the same bracket, and the same exp.
+    ///
+    /// This is the regression guard for basis normalization consistency.
+    /// Convention: tr(Tₐ†Tᵦ) = ½δₐᵦ for all implementations.
+    #[test]
+    fn test_sun2_su2_basis_matrices_agree() {
+        // Basis element matrices must be identical
+        for k in 0..3 {
+            let m_sun = SunAlgebra::<2>::basis_element(k).to_matrix();
+            // Build SU2 basis matrix manually: Tₖ = iσₖ/2
+            let i = Complex64::new(0.0, 1.0);
+            let sigma: Array2<Complex64> = match k {
+                0 => Array2::from_shape_vec(
+                    (2, 2),
+                    vec![
+                        Complex64::new(0.0, 0.0),
+                        Complex64::new(1.0, 0.0),
+                        Complex64::new(1.0, 0.0),
+                        Complex64::new(0.0, 0.0),
+                    ],
+                )
+                .unwrap(),
+                1 => Array2::from_shape_vec(
+                    (2, 2),
+                    vec![
+                        Complex64::new(0.0, 0.0),
+                        Complex64::new(0.0, -1.0),
+                        Complex64::new(0.0, 1.0),
+                        Complex64::new(0.0, 0.0),
+                    ],
+                )
+                .unwrap(),
+                2 => Array2::from_shape_vec(
+                    (2, 2),
+                    vec![
+                        Complex64::new(1.0, 0.0),
+                        Complex64::new(0.0, 0.0),
+                        Complex64::new(0.0, 0.0),
+                        Complex64::new(-1.0, 0.0),
+                    ],
+                )
+                .unwrap(),
+                _ => unreachable!(),
+            };
+            let expected = sigma.mapv(|z| i * z * 0.5);
+
+            for r in 0..2 {
+                for c in 0..2 {
+                    assert!(
+                        (m_sun[(r, c)] - expected[(r, c)]).norm() < 1e-10,
+                        "SUN<2> basis {} at ({},{}): got {}, want {}",
+                        k,
+                        r,
+                        c,
+                        m_sun[(r, c)],
+                        expected[(r, c)]
+                    );
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn test_sun2_su2_brackets_agree() {
+        use crate::Su2Algebra;
+
+        for i in 0..3 {
+            for j in 0..3 {
+                let bracket_su2 = Su2Algebra::basis_element(i)
+                    .bracket(&Su2Algebra::basis_element(j))
+                    .to_components();
+                let bracket_sun = SunAlgebra::<2>::basis_element(i)
+                    .bracket(&SunAlgebra::<2>::basis_element(j))
+                    .to_components();
+
+                for k in 0..3 {
+                    assert_relative_eq!(bracket_su2[k], bracket_sun[k], epsilon = 1e-10);
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn test_sun2_su2_exp_agrees() {
+        use crate::{Su2Algebra, SU2};
+
+        let coeffs = [0.3, -0.2, 0.4];
+        let g_su2 = SU2::exp(&Su2Algebra::new(coeffs));
+        let g_sun = SUN::<2>::exp(&SunAlgebra::<2>::from_components(&coeffs));
+
+        let m_su2 = g_su2.to_matrix();
+        let m_sun = g_sun.matrix();
+
+        for i in 0..2 {
+            for j in 0..2 {
+                assert_relative_eq!(m_su2[i][j].re, m_sun[(i, j)].re, epsilon = 1e-10);
+                assert_relative_eq!(m_su2[i][j].im, m_sun[(i, j)].im, epsilon = 1e-10);
+            }
+        }
+    }
+
+    /// SPEC: SU3 and SUN<3> basis matrices must agree up to basis reordering.
+    ///
+    /// SU3 uses standard Gell-Mann ordering (λ₁..λ₈ interleaved by type).
+    /// SUN<3> groups by type: symmetric, antisymmetric, diagonal.
+    /// Mapping: SU3 index [0,1,2,3,4,5,6,7] → SUN<3> index [0,3,6,1,4,2,5,7].
+    #[test]
+    fn test_sun3_su3_basis_matrices_agree() {
+        use crate::Su3Algebra;
+
+        // SU3 Gell-Mann index → SUN<3> generalized Gell-Mann index
+        let su3_to_sun: [usize; 8] = [0, 3, 6, 1, 4, 2, 5, 7];
+
+        for k in 0..8 {
+            let m_su3 = Su3Algebra::basis_element(k).to_matrix();
+            let m_sun = SunAlgebra::<3>::basis_element(su3_to_sun[k]).to_matrix();
+
+            for r in 0..3 {
+                for c in 0..3 {
+                    assert!(
+                        (m_su3[(r, c)] - m_sun[(r, c)]).norm() < 1e-10,
+                        "Basis {} (SU3) vs {} (SUN) at ({},{}): SU3={}, SUN<3>={}",
+                        k,
+                        su3_to_sun[k],
+                        r,
+                        c,
+                        m_su3[(r, c)],
+                        m_sun[(r, c)]
+                    );
+                }
+            }
+        }
+    }
+
+    /// SPEC: Brackets must agree when using corresponding basis elements.
+    ///
+    /// We compare at the matrix level to avoid coefficient ordering issues.
+    #[test]
+    fn test_sun3_su3_brackets_agree() {
+        use crate::Su3Algebra;
+
+        // SU3 Gell-Mann index → SUN<3> generalized Gell-Mann index
+        let su3_to_sun: [usize; 8] = [0, 3, 6, 1, 4, 2, 5, 7];
+
+        for i in 0..8 {
+            for j in 0..8 {
+                let bracket_su3 = Su3Algebra::basis_element(i)
+                    .bracket(&Su3Algebra::basis_element(j))
+                    .to_matrix();
+                let bracket_sun = SunAlgebra::<3>::basis_element(su3_to_sun[i])
+                    .bracket(&SunAlgebra::<3>::basis_element(su3_to_sun[j]))
+                    .to_matrix();
+
+                for r in 0..3 {
+                    for c in 0..3 {
+                        assert!(
+                            (bracket_su3[(r, c)] - bracket_sun[(r, c)]).norm() < 1e-10,
+                            "Bracket [e{},e{}] at ({},{}): SU3={}, SUN<3>={}",
+                            i,
+                            j,
+                            r,
+                            c,
+                            bracket_su3[(r, c)],
+                            bracket_sun[(r, c)]
+                        );
+                    }
+                }
+            }
+        }
+    }
+
+    /// SPEC: exp of the same matrix must produce the same group element.
+    ///
+    /// We construct the algebra element via matrix to avoid ordering issues.
+    #[test]
+    fn test_sun3_su3_exp_agrees() {
+        use crate::{Su3Algebra, SU3};
+
+        // Build an su(3) matrix via SU3, then reconstruct in both representations
+        let su3_coeffs = [0.1, -0.2, 0.15, 0.08, -0.12, 0.05, 0.1, -0.06];
+        let su3_elem = Su3Algebra::from_components(&su3_coeffs);
+        let matrix = su3_elem.to_matrix();
+
+        // Reconstruct via SUN<3>::from_matrix
+        let sun_elem = SunAlgebra::<3>::from_matrix(&matrix);
+
+        let g_su3 = SU3::exp(&su3_elem);
+        let g_sun = SUN::<3>::exp(&sun_elem);
+
+        let m_su3 = g_su3.matrix();
+        let m_sun = g_sun.matrix();
+
+        for i in 0..3 {
+            for j in 0..3 {
+                assert!(
+                    (m_su3[(i, j)] - m_sun[(i, j)]).norm() < 1e-10,
+                    "exp disagrees at ({},{}): SU3={}, SUN<3>={}",
+                    i,
+                    j,
+                    m_su3[(i, j)],
+                    m_sun[(i, j)]
+                );
+            }
+        }
+    }
+
+    /// SPEC: All implementations must satisfy tr(Tₐ†Tᵦ) = ½δₐᵦ.
+    /// Tests both diagonal (normalization) and off-diagonal (orthogonality).
+    #[test]
+    fn test_normalization_half_delta() {
+        for n in [2_usize, 3, 4, 5] {
+            let dim = n * n - 1;
+            for a in 0..dim {
+                let ma = match n {
+                    2 => SunAlgebra::<2>::basis_element(a).to_matrix(),
+                    3 => SunAlgebra::<3>::basis_element(a).to_matrix(),
+                    4 => SunAlgebra::<4>::basis_element(a).to_matrix(),
+                    5 => SunAlgebra::<5>::basis_element(a).to_matrix(),
+                    _ => unreachable!(),
+                };
+                let ma_dag = ma.t().mapv(|z| z.conj());
+
+                for b in a..dim {
+                    let mb = match n {
+                        2 => SunAlgebra::<2>::basis_element(b).to_matrix(),
+                        3 => SunAlgebra::<3>::basis_element(b).to_matrix(),
+                        4 => SunAlgebra::<4>::basis_element(b).to_matrix(),
+                        5 => SunAlgebra::<5>::basis_element(b).to_matrix(),
+                        _ => unreachable!(),
+                    };
+
+                    let prod = ma_dag.dot(&mb);
+                    let mut tr = 0.0;
+                    for i in 0..n {
+                        tr += prod[(i, i)].re;
+                    }
+
+                    let expected = if a == b { 0.5 } else { 0.0 };
+                    assert!(
+                        (tr - expected).abs() < 1e-10,
+                        "SU({}): tr(T{}†T{}) = {:.4}, want {}",
+                        n,
+                        a,
+                        b,
+                        tr,
+                        expected
+                    );
+                }
+            }
+        }
+    }
+
+    // ========================================================================
+    // Group axioms for N=4,5 (untested dimensions)
+    // ========================================================================
+
+    #[test]
+    fn test_su4_group_axioms() {
+        let x = SunAlgebra::<4>::from_components(&[
+            0.1, -0.2, 0.15, 0.08, -0.12, 0.05, 0.1, -0.06, 0.09, -0.11, 0.07, 0.03, -0.08, 0.04,
+            0.13,
+        ]);
+        let y = SunAlgebra::<4>::from_components(&[
+            -0.05, 0.1, -0.08, 0.12, 0.06, -0.15, 0.03, 0.09, -0.07, 0.11, -0.04, 0.14, 0.02, -0.1,
+            0.08,
+        ]);
+
+        let g = SUN::<4>::exp(&x);
+        let h = SUN::<4>::exp(&y);
+        let e = SUN::<4>::identity();
+
+        // Identity
+        assert_relative_eq!(
+            g.compose(&e).distance_to_identity(),
+            g.distance_to_identity(),
+            epsilon = 1e-10
+        );
+
+        // Inverse
+        assert_relative_eq!(
+            g.compose(&g.inverse()).distance_to_identity(),
+            0.0,
+            epsilon = 1e-9
+        );
+
+        // Associativity
+        let k = SUN::<4>::exp(&x.scale(0.7));
+        let lhs = g.compose(&h).compose(&k);
+        let rhs = g.compose(&h.compose(&k));
+        assert_relative_eq!(
+            lhs.compose(&rhs.inverse()).distance_to_identity(),
+            0.0,
+            epsilon = 1e-9
+        );
+
+        // Unitarity preservation
+        assert!(g.verify_unitarity(1e-10));
+        assert!(g.compose(&h).verify_unitarity(1e-10));
+    }
+
+    #[test]
+    fn test_su5_group_axioms() {
+        let x = SunAlgebra::<5>::from_components(
+            &(0..24)
+                .map(|i| 0.05 * (i as f64 - 12.0).sin())
+                .collect::<Vec<_>>(),
+        );
+        let g = SUN::<5>::exp(&x);
+
+        // Identity
+        assert_relative_eq!(
+            g.compose(&SUN::<5>::identity()).distance_to_identity(),
+            g.distance_to_identity(),
+            epsilon = 1e-10
+        );
+
+        // Inverse
+        assert_relative_eq!(
+            g.compose(&g.inverse()).distance_to_identity(),
+            0.0,
+            epsilon = 1e-9
+        );
+
+        // Unitarity
+        assert!(g.verify_unitarity(1e-10));
+    }
+
+    // ========================================================================
+    // Jacobi identity for N=4 (tested only for N=3 previously)
+    // ========================================================================
+
+    #[test]
+    fn test_su4_jacobi_identity() {
+        // Test with several triples of basis elements
+        let triples = [(0, 3, 7), (1, 5, 10), (2, 8, 14), (4, 9, 12)];
+        for (i, j, k) in triples {
+            let x = SunAlgebra::<4>::basis_element(i);
+            let y = SunAlgebra::<4>::basis_element(j);
+            let z = SunAlgebra::<4>::basis_element(k);
+
+            let t1 = x.bracket(&y.bracket(&z));
+            let t2 = y.bracket(&z.bracket(&x));
+            let t3 = z.bracket(&x.bracket(&y));
+            let sum = t1.add(&t2).add(&t3);
+
+            assert!(
+                sum.norm() < 1e-10,
+                "Jacobi violated for SU(4) basis ({},{},{}): ||sum|| = {:.2e}",
+                i,
+                j,
+                k,
+                sum.norm()
+            );
+        }
+    }
+
+    // ========================================================================
+    // Adjoint representation axioms for SU(N)
+    // ========================================================================
+
+    #[test]
+    fn test_sun_adjoint_identity_action() {
+        // Ad_e(X) = X for all X
+        let e = SUN::<3>::identity();
+        for i in 0..8 {
+            let x = SunAlgebra::<3>::basis_element(i);
+            let ad_x = e.adjoint_action(&x);
+            for k in 0..8 {
+                assert_relative_eq!(
+                    x.to_components()[k],
+                    ad_x.to_components()[k],
+                    epsilon = 1e-10
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn test_sun_adjoint_homomorphism() {
+        // Ad_{g·h}(X) = Ad_g(Ad_h(X))
+        let g = SUN::<3>::exp(&SunAlgebra::<3>::basis_element(0).scale(0.5));
+        let h = SUN::<3>::exp(&SunAlgebra::<3>::basis_element(3).scale(0.3));
+        let x = SunAlgebra::<3>::from_components(&[0.1, -0.2, 0.15, 0.08, -0.12, 0.05, 0.1, -0.06]);
+
+        let gh = g.compose(&h);
+        let lhs = gh.adjoint_action(&x);
+        let rhs = g.adjoint_action(&h.adjoint_action(&x));
+
+        for k in 0..8 {
+            assert_relative_eq!(
+                lhs.to_components()[k],
+                rhs.to_components()[k],
+                epsilon = 1e-9
+            );
+        }
+    }
+
+    #[test]
+    fn test_sun_adjoint_preserves_bracket() {
+        // Ad_g([X,Y]) = [Ad_g(X), Ad_g(Y)]
+        let g = SUN::<3>::exp(&SunAlgebra::<3>::basis_element(2).scale(0.8));
+        let x = SunAlgebra::<3>::basis_element(0);
+        let y = SunAlgebra::<3>::basis_element(4);
+
+        let lhs = g.adjoint_action(&x.bracket(&y));
+        let rhs = g.adjoint_action(&x).bracket(&g.adjoint_action(&y));
+
+        for k in 0..8 {
+            assert_relative_eq!(
+                lhs.to_components()[k],
+                rhs.to_components()[k],
+                epsilon = 1e-9
+            );
+        }
+    }
+
+    #[test]
+    fn test_sun4_adjoint_preserves_norm() {
+        // ||Ad_g(X)|| = ||X|| for compact groups
+        let x = SunAlgebra::<4>::from_components(&[
+            0.1, -0.2, 0.15, 0.08, -0.12, 0.05, 0.1, -0.06, 0.09, -0.11, 0.07, 0.03, -0.08, 0.04,
+            0.13,
+        ]);
+        let g = SUN::<4>::exp(&SunAlgebra::<4>::basis_element(5).scale(1.2));
+        let ad_x = g.adjoint_action(&x);
+        assert_relative_eq!(x.norm(), ad_x.norm(), epsilon = 1e-9);
+    }
+
+    // ========================================================================
+    // exp/log roundtrip for N=4 (untested dimension)
+    // ========================================================================
+
+    #[test]
+    fn test_su4_exp_log_roundtrip() {
+        let x = SunAlgebra::<4>::from_components(&[
+            0.1, -0.05, 0.08, 0.03, -0.06, 0.02, 0.04, -0.07, 0.09, -0.03, 0.01, 0.05, -0.02, 0.06,
+            0.04,
+        ]);
+        let g = SUN::<4>::exp(&x);
+        assert!(g.verify_unitarity(1e-10));
+
+        let x_back = SUN::<4>::log(&g).expect("log should succeed near identity");
+        let diff: f64 = x
+            .coefficients()
+            .iter()
+            .zip(x_back.coefficients().iter())
+            .map(|(a, b)| (a - b).powi(2))
+            .sum::<f64>()
+            .sqrt();
+
+        assert!(diff < 1e-8, "SU(4) exp/log roundtrip error: {:.2e}", diff);
+    }
 
     #[test]
     fn test_sun_algebra_dimensions() {

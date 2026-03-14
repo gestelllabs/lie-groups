@@ -3,13 +3,34 @@
 ## v0.2.0 (done)
 
 - Breaking API cleanup (naming, field visibility, trait supertraits)
+- Unified basis normalization: tr(Tₐ†Tᵦ) = ½δₐᵦ across SU2, SU3, SUN
 - `geodesic()`, `bch_checked()`, `approx` impls, zero-alloc `inner()`
 - CI hardening (audit, deny, semver-checks, dependabot)
 - Correctness fixes (reorthogonalization, det check, sin_cos)
 
-## Post-0.2.0
+## v0.3.0 — Feature parity across groups
 
-- Property tests (proptest) for `SUN<N>` and `RPlus`
+Stabilize the API by closing gaps in the feature matrix. Every compact group
+should support the same core operations.
+
+### Numerical stability
+- `log_with_condition()` for SO3, SU3, SUN (currently SU2-only)
+- Public `renormalize()` for SU3, SUN (private helpers already exist)
+
+### Random sampling
+- `random_haar()` for SO3, SU3, SUN (currently SU2-only)
+- `random_small()` for SU2, SO3, SU3, SUN (currently U1-only)
+
+### Representation theory
+- Casimir trait for So3Algebra (same eigenvalues as SU2 via algebra isomorphism)
+- Casimir trait for SunAlgebra<N> (requires generic representation type)
+
+### Consistency
+- Reconcile SO3-only `interpolate()` with trait-level `geodesic()`
+- Property tests (proptest) for SUN<N> and RPlus
+
+## Post-0.3.0
+
 - `serde` feature gate
 - Crate-level examples directory
 - Consolidate ndarray/nalgebra to single backend
