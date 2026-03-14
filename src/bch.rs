@@ -728,6 +728,7 @@ pub fn bch_split<A: LieAlgebra>(z: &A) -> (A, A) {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::sun::{SunAlgebra, SUN};
     use crate::traits::{LieAlgebra, LieGroup};
     use crate::{Su2Algebra, Su3Algebra, SU2, SU3};
 
@@ -1221,5 +1222,86 @@ mod tests {
             "Error ratio should be ~256, got {}",
             ratio
         );
+    }
+
+    // ========================================================================
+    // Cross-cutting normalization consistency: BCH(X,Y) ≈ log(exp(X)·exp(Y))
+    //
+    // These tests verify that bracket(), exp(), and log() are mutually
+    // consistent after the normalization unification. If any of them has
+    // a stale factor, BCH will disagree with direct composition.
+    // ========================================================================
+
+    /// BCH vs exp·log on SUN<3> with non-axis-aligned inputs.
+    #[test]
+    fn test_bch_vs_exp_log_sun3() {
+        let x = SunAlgebra::<3>::from_components(&[0.05, -0.03, 0.02, 0.04, -0.01, 0.03, -0.02, 0.01]);
+        let y = SunAlgebra::<3>::from_components(&[-0.02, 0.04, -0.03, 0.01, 0.05, -0.04, 0.02, -0.03]);
+
+        let direct = SUN::<3>::exp(&x).compose(&SUN::<3>::exp(&y));
+        let bch_z = bch_fifth_order(&x, &y);
+        let via_bch = SUN::<3>::exp(&bch_z);
+
+        let distance = direct.compose(&via_bch.inverse()).distance_to_identity();
+        assert!(
+            distance < 1e-8,
+            "SUN<3> BCH vs exp·log distance: {:.2e}",
+            distance
+        );
+    }
+
+    /// BCH vs exp·log on SUN<4>.
+    #[test]
+    fn test_bch_vs_exp_log_sun4() {
+        let mut x_coeffs = vec![0.0; 15];
+        let mut y_coeffs = vec![0.0; 15];
+        for i in 0..15 {
+            x_coeffs[i] = 0.03 * (i as f64 - 7.0) / 7.0;
+            y_coeffs[i] = -0.03 * ((14 - i) as f64 - 7.0) / 7.0;
+        }
+        let x = SunAlgebra::<4>::from_components(&x_coeffs);
+        let y = SunAlgebra::<4>::from_components(&y_coeffs);
+
+        let direct = SUN::<4>::exp(&x).compose(&SUN::<4>::exp(&y));
+        let bch_z = bch_fifth_order(&x, &y);
+        let via_bch = SUN::<4>::exp(&bch_z);
+
+        let distance = direct.compose(&via_bch.inverse()).distance_to_identity();
+        assert!(
+            distance < 1e-8,
+            "SUN<4> BCH vs exp·log distance: {:.2e}",
+            distance
+        );
+    }
+
+    /// BCH on SU3 (hardcoded structure constants) must agree with
+    /// BCH on SUN<3> (matrix commutator bracket) for the same element.
+    #[test]
+    fn test_bch_su3_vs_sun3_consistency() {
+        // Build algebra elements via SU3, convert to SUN<3> via matrix roundtrip
+        let x_su3 = Su3Algebra::from_components(&[0.05, -0.03, 0.02, 0.04, -0.01, 0.03, -0.02, 0.01]);
+        let y_su3 = Su3Algebra::from_components(&[-0.02, 0.04, -0.03, 0.01, 0.05, -0.04, 0.02, -0.03]);
+
+        let x_sun = SunAlgebra::<3>::from_matrix(&x_su3.to_matrix());
+        let y_sun = SunAlgebra::<3>::from_matrix(&y_su3.to_matrix());
+
+        // BCH via SU3 structure constants
+        let z_su3 = bch_fifth_order(&x_su3, &y_su3);
+        let m_su3 = z_su3.to_matrix();
+
+        // BCH via SUN<3> matrix commutator
+        let z_sun = bch_fifth_order(&x_sun, &y_sun);
+        let m_sun = z_sun.to_matrix();
+
+        // Matrices must agree
+        for r in 0..3 {
+            for c in 0..3 {
+                assert!(
+                    (m_su3[(r, c)] - m_sun[(r, c)]).norm() < 1e-12,
+                    "BCH matrix disagrees at ({},{}): SU3={}, SUN<3>={}",
+                    r, c, m_su3[(r, c)], m_sun[(r, c)]
+                );
+            }
+        }
     }
 }

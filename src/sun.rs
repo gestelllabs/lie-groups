@@ -1433,6 +1433,100 @@ mod tests {
     }
 
     // ========================================================================
+    // Normalization consistency: bracket + exp + adjoint must be coherent
+    // ========================================================================
+
+    /// Verify BCH(X,Y) ≈ log(exp(X)·exp(Y)) for SUN<2>, confirming
+    /// the bracket/exp coupling is correct under the /2 convention.
+    #[test]
+    fn test_bch_exp_log_coherence_sun2() {
+        use crate::bch::bch_fifth_order;
+
+        let x = SunAlgebra::<2>::from_components(&[0.05, -0.03, 0.04]);
+        let y = SunAlgebra::<2>::from_components(&[-0.02, 0.04, -0.03]);
+
+        let direct = SUN::<2>::exp(&x).compose(&SUN::<2>::exp(&y));
+        let bch_z = bch_fifth_order(&x, &y);
+        let via_bch = SUN::<2>::exp(&bch_z);
+
+        let distance = direct.compose(&via_bch.inverse()).distance_to_identity();
+        assert!(
+            distance < 1e-8,
+            "SUN<2> BCH vs exp·log distance: {:.2e}",
+            distance
+        );
+    }
+
+    /// Adjoint preserves bracket on SU3: Ad_g([X,Y]) = [Ad_g(X), Ad_g(Y)].
+    /// Uses non-random, non-axis-aligned elements for deterministic coverage.
+    #[test]
+    fn test_adjoint_preserves_bracket_su3() {
+        use crate::{Su3Algebra, SU3};
+
+        let x = Su3Algebra::from_components(&[0.3, -0.2, 0.1, 0.15, -0.1, 0.25, -0.15, 0.05]);
+        let y = Su3Algebra::from_components(&[-0.1, 0.25, -0.15, 0.2, 0.05, -0.1, 0.3, -0.2]);
+        let g = SU3::exp(&Su3Algebra::from_components(&[0.4, -0.3, 0.2, 0.1, -0.2, 0.15, -0.1, 0.3]));
+
+        let lhs = g.adjoint_action(&x.bracket(&y));
+        let rhs = g.adjoint_action(&x).bracket(&g.adjoint_action(&y));
+
+        let diff_matrix = lhs.to_matrix() - rhs.to_matrix();
+        let mut frobenius = 0.0;
+        for r in 0..3 {
+            for c in 0..3 {
+                frobenius += diff_matrix[(r, c)].norm_sqr();
+            }
+        }
+        assert!(
+            frobenius.sqrt() < 1e-10,
+            "SU3 Ad_g([X,Y]) ≠ [Ad_g(X), Ad_g(Y)]: ||diff|| = {:.2e}",
+            frobenius.sqrt()
+        );
+    }
+
+    /// SU3 bracket (structure constants) and SUN<3> bracket (matrix commutator)
+    /// must produce the same abstract element, verified through from_matrix roundtrip.
+    #[test]
+    fn test_su3_sun3_bracket_coefficient_roundtrip() {
+        use crate::Su3Algebra;
+
+        let x_su3 = Su3Algebra::from_components(&[0.3, -0.2, 0.1, 0.15, -0.1, 0.25, -0.15, 0.05]);
+        let y_su3 = Su3Algebra::from_components(&[-0.1, 0.25, -0.15, 0.2, 0.05, -0.1, 0.3, -0.2]);
+
+        // Bracket via SU3 structure constants
+        let bracket_su3 = x_su3.bracket(&y_su3);
+        let m_su3 = bracket_su3.to_matrix();
+
+        // Same elements via SUN<3>, bracket via matrix commutator
+        let x_sun = SunAlgebra::<3>::from_matrix(&x_su3.to_matrix());
+        let y_sun = SunAlgebra::<3>::from_matrix(&y_su3.to_matrix());
+        let bracket_sun = x_sun.bracket(&y_sun);
+        let m_sun = bracket_sun.to_matrix();
+
+        for r in 0..3 {
+            for c in 0..3 {
+                assert!(
+                    (m_su3[(r, c)] - m_sun[(r, c)]).norm() < 1e-12,
+                    "Bracket matrix disagrees at ({},{}): SU3={}, SUN<3>={}",
+                    r, c, m_su3[(r, c)], m_sun[(r, c)]
+                );
+            }
+        }
+
+        // Also verify from_matrix roundtrip: SU3 → matrix → SUN<3> → matrix
+        let roundtrip = SunAlgebra::<3>::from_matrix(&m_su3).to_matrix();
+        for r in 0..3 {
+            for c in 0..3 {
+                assert!(
+                    (m_su3[(r, c)] - roundtrip[(r, c)]).norm() < 1e-12,
+                    "from_matrix roundtrip failed at ({},{})",
+                    r, c
+                );
+            }
+        }
+    }
+
+    // ========================================================================
     // Group axioms for N=4,5 (untested dimensions)
     // ========================================================================
 
