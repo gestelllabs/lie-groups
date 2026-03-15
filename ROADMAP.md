@@ -25,8 +25,10 @@ should support the same core operations.
 - Casimir trait for So3Algebra (same eigenvalues as SU2 via algebra isomorphism)
 - Casimir trait for SunAlgebra<N> (requires generic representation type)
 
-### Consistency
-- Reconcile SO3-only `interpolate()` with trait-level `geodesic()`
+### API consistency
+- Reconcile SO3-only `interpolate()` with trait-level `geodesic()` (deprecate or document)
+- Unify `verify_unitarity()`/`verify_orthogonality()` naming (trait method or consistent name)
+- Add group-level `from_matrix()`/`to_matrix()` for SU3, SUN (currently algebra-only)
 - Property tests (proptest) for SUN<N> and RPlus
 
 ## Post-0.3.0

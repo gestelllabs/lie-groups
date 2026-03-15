@@ -646,14 +646,15 @@ pub trait LieAlgebra: Clone + Sized + std::fmt::Debug + PartialEq {
 ///
 /// # Design Notes
 ///
-/// - **`log` is not on this trait.** The logarithm has group-specific error
-///   semantics (singularities, conditioning) that resist a uniform signature.
-///   Each group provides `log` as an inherent method returning `LogResult`.
-///
 /// - **`conjugate_transpose` assumes a matrix representation** with an inner
 ///   product (unitary/orthogonal groups). For non-unitary groups this method
 ///   would need a different interpretation. All groups in this crate are
 ///   unitary or orthogonal, so this is not currently a problem.
+///
+/// - **`log` returns `LogResult`** because the logarithm has group-specific
+///   singularities (e.g., -I for SU(2), π-rotation for SO(3)). Some groups
+///   provide richer inherent methods like `log_with_condition()` for
+///   numerical conditioning information.
 ///
 /// # Open Trait
 ///
