@@ -17,7 +17,7 @@
 //! The set of roots Φ ⊂ 𝔥* forms a **root system**, satisfying:
 //! 1. Φ is finite, spans 𝔥*, and 0 ∉ Φ
 //! 2. If α ∈ Φ, then -α ∈ Φ and no other scalar multiples
-//! 3. Φ is closed under Weyl reflections: `s_α(β)` = β - ⟨β,α⟩α
+//! 3. Φ is closed under Weyl reflections: `s_α(β) = β - 2⟨β,α⟩/⟨α,α⟩ · α`
 //! 4. ⟨β,α⟩ ∈ ℤ for all α,β ∈ Φ (Cartan integers)
 //!
 //! # Cartan Classification
