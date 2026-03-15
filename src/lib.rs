@@ -39,6 +39,7 @@
 //! - **Numerical stability**: Conditioned logarithms, scaling-and-squaring exp
 
 pub mod bch;
+pub mod conversions;
 pub mod error;
 pub mod quaternion;
 pub mod representation;
