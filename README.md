@@ -137,9 +137,11 @@ SU(3) are also available — see the [API docs](https://docs.rs/lie-groups).
 
 ## Conventions
 
-- **su(2) basis**: `{iσ/2}` (Pauli matrices divided by 2), structure constants `fᵢⱼₖ = −εᵢⱼₖ`
+- **Normalization**: all SU(N) generators use `Tₐ = iλₐ/2` with `tr(Tₐ†Tᵦ) = ½δₐᵦ`
+- **su(2) basis**: `{iσ/2}`, structure constants `fᵢⱼₖ = −εᵢⱼₖ`
 - **so(3) basis**: angular momentum generators, structure constants `fᵢⱼₖ = +εᵢⱼₖ`
-- **su(3) basis**: Gell-Mann matrices `{iλ/2}`, standard normalization `tr(λₐλᵦ) = 2δₐᵦ`
+- **su(3) basis**: Gell-Mann matrices `{iλ/2}`, `tr(λₐλᵦ) = 2δₐᵦ`
+- **su(N) basis**: generalized Gell-Mann matrices `{iλ/2}`, same normalization
 - **Exponential map**: `exp: 𝔤 → G` maps algebra elements to group elements
 - **Logarithm**: `log: G → 𝔤` is the local inverse, returns `Result` with condition info
 

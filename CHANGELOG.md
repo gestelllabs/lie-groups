@@ -3,7 +3,7 @@
 All notable changes to this project will be documented in this file.
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
-## [0.2.0] — 2026-03-11
+## [0.2.0] — 2026-03-15
 
 ### Breaking Changes
 
@@ -44,6 +44,11 @@ Format follows [Keep a Changelog](https://keepachangelog.com/).
 
 These bounds break downstream `impl LieAlgebra for MyType` if `MyType` doesn't
 derive `Debug`/`PartialEq`. Add `#[derive(Debug, PartialEq)]`.
+
+**API stability:**
+- All public enums (`LogError`, `BchError`, `BchMethod`, `RepresentationError`,
+  `LogQuality`) are now `#[non_exhaustive]` — new variants in 0.2.x patches
+  won't break downstream match expressions
 
 ### Added
 
