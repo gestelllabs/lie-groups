@@ -17,7 +17,7 @@ rand = ["dep:rand", "dep:rand_distr"]
 proptest = ["dep:proptest"]
 
 [dependencies]
-nalgebra = "0.33"
+nalgebra = "0.34"
 ndarray = "0.16"
 num-complex = "0.4"
 approx = "0.5"
