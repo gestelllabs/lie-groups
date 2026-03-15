@@ -180,14 +180,18 @@ mod sealed {
     impl SealedSimple for SU2 {}
     impl SealedSimple for SU3 {}
     impl SealedSimple for SO3 {}
-    // SUN<N> is simple (hence semi-simple) for all N >= 2.
-    // The const assert in SUN prevents N < 2 at compile time.
+    // SUN<N> is simple for N >= 2. SU(1) is trivial (not simple), but Rust
+    // stable lacks const generic bounds (`where N >= 2`). The runtime assert
+    // in SUN::identity/exp/from_matrix prevents SUN<1> construction, so the
+    // marker is unreachable in practice. Revisit when `generic_const_exprs`
+    // stabilizes.
     impl<const N: usize> SealedSimple for SUN<N> {}
 
     // Semi-simple groups (all simple groups are semi-simple)
     impl SealedSemiSimple for SU2 {}
     impl SealedSemiSimple for SU3 {}
     impl SealedSemiSimple for SO3 {}
+    // Same N >= 2 caveat as SealedSimple above.
     impl<const N: usize> SealedSemiSimple for SUN<N> {}
 
     // Traceless algebras (representation guarantees tr(X) = 0)
@@ -639,6 +643,17 @@ pub trait LieAlgebra: Clone + Sized + std::fmt::Debug + PartialEq {
 /// // Check group axioms
 /// assert!(g.compose(&g.inverse()).distance_to_identity() < 1e-10);
 /// ```
+///
+/// # Design Notes
+///
+/// - **`log` is not on this trait.** The logarithm has group-specific error
+///   semantics (singularities, conditioning) that resist a uniform signature.
+///   Each group provides `log` as an inherent method returning `LogResult`.
+///
+/// - **`conjugate_transpose` assumes a matrix representation** with an inner
+///   product (unitary/orthogonal groups). For non-unitary groups this method
+///   would need a different interpretation. All groups in this crate are
+///   unitary or orthogonal, so this is not currently a problem.
 ///
 /// # Open Trait
 ///
