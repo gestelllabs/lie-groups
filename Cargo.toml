@@ -18,7 +18,7 @@ proptest = ["dep:proptest"]
 
 [dependencies]
 nalgebra = "0.33"
-ndarray = "0.16"
+ndarray = "0.17"
 num-complex = "0.4"
 approx = "0.5"
 rand = { version = "0.8", optional = true }
