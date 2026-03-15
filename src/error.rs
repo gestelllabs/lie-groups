@@ -30,6 +30,7 @@ use std::fmt;
 /// - If U_□ far from I (large plaquette, strong field), log may fail
 /// - Solution: Use smaller lattice spacing or smearing techniques
 #[derive(Debug, Clone, PartialEq)]
+#[non_exhaustive]
 pub enum LogError {
     /// Element is too far from identity for logarithm to be computed
     ///
@@ -96,6 +97,7 @@ pub type LogResult<T> = Result<T, LogError>;
 /// group actions on vector spaces. Some representations require complex
 /// tensor product constructions that may not be implemented.
 #[derive(Debug, Clone, PartialEq)]
+#[non_exhaustive]
 pub enum RepresentationError {
     /// The requested representation is not yet implemented
     ///
@@ -222,6 +224,7 @@ pub struct LogCondition {
 
 /// Quality levels for logarithm computations.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum LogQuality {
     /// Excellent conditioning: κ < 2, full precision expected
     Excellent,

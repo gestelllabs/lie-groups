@@ -583,6 +583,7 @@ where
 
 /// Result of BCH composition indicating which method was used.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum BchMethod {
     /// Used BCH series (inputs within convergence radius)
     Series { order: usize },
@@ -647,6 +648,7 @@ where
 
 /// Error type for safe BCH operations.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum BchError {
     /// BCH order must be 2-5
     InvalidOrder(usize),
