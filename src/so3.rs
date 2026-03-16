@@ -581,9 +581,28 @@ impl Mul<&SO3> for SO3 {
     }
 }
 
+impl Mul<SO3> for SO3 {
+    type Output = SO3;
+    fn mul(self, rhs: SO3) -> SO3 {
+        &self * &rhs
+    }
+}
+
 impl MulAssign<&SO3> for SO3 {
     fn mul_assign(&mut self, rhs: &SO3) {
         self.matrix *= rhs.matrix;
+    }
+}
+
+impl std::iter::Product for SO3 {
+    fn product<I: Iterator<Item = Self>>(iter: I) -> Self {
+        iter.fold(Self::identity(), |acc, g| acc * g)
+    }
+}
+
+impl<'a> std::iter::Product<&'a SO3> for SO3 {
+    fn product<I: Iterator<Item = &'a Self>>(iter: I) -> Self {
+        iter.fold(Self::identity(), |acc, g| &acc * g)
     }
 }
 

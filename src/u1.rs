@@ -519,9 +519,28 @@ impl Mul<&U1> for U1 {
     }
 }
 
+impl Mul<U1> for U1 {
+    type Output = U1;
+    fn mul(self, rhs: U1) -> U1 {
+        &self * &rhs
+    }
+}
+
 impl MulAssign<&U1> for U1 {
     fn mul_assign(&mut self, rhs: &U1) {
         *self = self.compose(rhs);
+    }
+}
+
+impl std::iter::Product for U1 {
+    fn product<I: Iterator<Item = Self>>(iter: I) -> Self {
+        iter.fold(Self::from_angle(0.0), |acc, g| acc * g)
+    }
+}
+
+impl<'a> std::iter::Product<&'a U1> for U1 {
+    fn product<I: Iterator<Item = &'a Self>>(iter: I) -> Self {
+        iter.fold(Self::from_angle(0.0), |acc, g| &acc * g)
     }
 }
 

@@ -377,9 +377,28 @@ impl Mul<&RPlus> for RPlus {
     }
 }
 
+impl Mul<RPlus> for RPlus {
+    type Output = RPlus;
+    fn mul(self, rhs: RPlus) -> RPlus {
+        &self * &rhs
+    }
+}
+
 impl MulAssign<&RPlus> for RPlus {
     fn mul_assign(&mut self, rhs: &RPlus) {
         *self = self.compose(rhs);
+    }
+}
+
+impl std::iter::Product for RPlus {
+    fn product<I: Iterator<Item = Self>>(iter: I) -> Self {
+        iter.fold(Self::from_value(1.0), |acc, g| acc * g)
+    }
+}
+
+impl<'a> std::iter::Product<&'a RPlus> for RPlus {
+    fn product<I: Iterator<Item = &'a Self>>(iter: I) -> Self {
+        iter.fold(Self::from_value(1.0), |acc, g| &acc * g)
     }
 }
 

@@ -1000,9 +1000,28 @@ impl Mul<&SU3> for SU3 {
     }
 }
 
+impl Mul<SU3> for SU3 {
+    type Output = SU3;
+    fn mul(self, rhs: SU3) -> SU3 {
+        &self * &rhs
+    }
+}
+
 impl MulAssign<&SU3> for SU3 {
     fn mul_assign(&mut self, rhs: &SU3) {
         self.matrix = self.matrix.dot(&rhs.matrix);
+    }
+}
+
+impl std::iter::Product for SU3 {
+    fn product<I: Iterator<Item = Self>>(iter: I) -> Self {
+        iter.fold(Self::identity(), |acc, g| acc * g)
+    }
+}
+
+impl<'a> std::iter::Product<&'a SU3> for SU3 {
+    fn product<I: Iterator<Item = &'a Self>>(iter: I) -> Self {
+        iter.fold(Self::identity(), |acc, g| &acc * g)
     }
 }
 

@@ -887,9 +887,29 @@ impl Mul<&SU2> for SU2 {
     }
 }
 
+impl Mul<SU2> for SU2 {
+    type Output = SU2;
+
+    fn mul(self, rhs: SU2) -> SU2 {
+        &self * &rhs
+    }
+}
+
 impl MulAssign<&SU2> for SU2 {
     fn mul_assign(&mut self, rhs: &SU2) {
         self.matrix = self.matrix.dot(&rhs.matrix);
+    }
+}
+
+impl std::iter::Product for SU2 {
+    fn product<I: Iterator<Item = Self>>(iter: I) -> Self {
+        iter.fold(Self::identity(), |acc, g| acc * g)
+    }
+}
+
+impl<'a> std::iter::Product<&'a SU2> for SU2 {
+    fn product<I: Iterator<Item = &'a Self>>(iter: I) -> Self {
+        iter.fold(Self::identity(), |acc, g| &acc * g)
     }
 }
 

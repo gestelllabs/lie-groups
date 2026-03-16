@@ -795,9 +795,28 @@ impl<const N: usize> Mul<&SUN<N>> for SUN<N> {
     }
 }
 
+impl<const N: usize> Mul<SUN<N>> for SUN<N> {
+    type Output = SUN<N>;
+    fn mul(self, rhs: SUN<N>) -> SUN<N> {
+        &self * &rhs
+    }
+}
+
 impl<const N: usize> MulAssign<&SUN<N>> for SUN<N> {
     fn mul_assign(&mut self, rhs: &SUN<N>) {
         self.matrix = self.matrix.dot(&rhs.matrix);
+    }
+}
+
+impl<const N: usize> std::iter::Product for SUN<N> {
+    fn product<I: Iterator<Item = Self>>(iter: I) -> Self {
+        iter.fold(Self::identity(), |acc, g| acc * g)
+    }
+}
+
+impl<'a, const N: usize> std::iter::Product<&'a SUN<N>> for SUN<N> {
+    fn product<I: Iterator<Item = &'a Self>>(iter: I) -> Self {
+        iter.fold(Self::identity(), |acc, g| &acc * g)
     }
 }
 
@@ -1465,7 +1484,9 @@ mod tests {
 
         let x = Su3Algebra::from_components(&[0.3, -0.2, 0.1, 0.15, -0.1, 0.25, -0.15, 0.05]);
         let y = Su3Algebra::from_components(&[-0.1, 0.25, -0.15, 0.2, 0.05, -0.1, 0.3, -0.2]);
-        let g = SU3::exp(&Su3Algebra::from_components(&[0.4, -0.3, 0.2, 0.1, -0.2, 0.15, -0.1, 0.3]));
+        let g = SU3::exp(&Su3Algebra::from_components(&[
+            0.4, -0.3, 0.2, 0.1, -0.2, 0.15, -0.1, 0.3,
+        ]));
 
         let lhs = g.adjoint_action(&x.bracket(&y));
         let rhs = g.adjoint_action(&x).bracket(&g.adjoint_action(&y));
@@ -1508,7 +1529,10 @@ mod tests {
                 assert!(
                     (m_su3[(r, c)] - m_sun[(r, c)]).norm() < 1e-12,
                     "Bracket matrix disagrees at ({},{}): SU3={}, SUN<3>={}",
-                    r, c, m_su3[(r, c)], m_sun[(r, c)]
+                    r,
+                    c,
+                    m_su3[(r, c)],
+                    m_sun[(r, c)]
                 );
             }
         }
@@ -1520,7 +1544,8 @@ mod tests {
                 assert!(
                     (m_su3[(r, c)] - roundtrip[(r, c)]).norm() < 1e-12,
                     "from_matrix roundtrip failed at ({},{})",
-                    r, c
+                    r,
+                    c
                 );
             }
         }
