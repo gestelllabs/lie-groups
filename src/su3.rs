@@ -670,8 +670,8 @@ impl SU3 {
 
     /// Random SU(3) element uniformly distributed according to Haar measure.
     ///
-    /// Delegates to the generic [`SUN<3>::random_haar`] implementation using
-    /// the Mezzadri (2007) algorithm, then converts via [`From<SUN<3>>`].
+    /// Delegates to the generic `SUN<3>::random_haar` implementation using
+    /// the Mezzadri (2007) algorithm, then converts via `From<SUN<3>>`.
     ///
     /// # Examples
     ///
