@@ -402,6 +402,50 @@ impl SO3 {
         (product - identity).norm() < tolerance
     }
 
+    /// Random SO(3) element uniformly distributed according to Haar measure.
+    ///
+    /// Uses the SU(2) → SO(3) double cover: sample a random quaternion on S³,
+    /// convert to rotation matrix via the adjoint representation.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use lie_groups::SO3;
+    /// use rand::SeedableRng;
+    ///
+    /// let mut rng = rand::rngs::StdRng::seed_from_u64(42);
+    /// let r = SO3::random_haar(&mut rng);
+    /// assert!(r.verify_orthogonality(1e-10));
+    /// ```
+    #[cfg(feature = "rand")]
+    #[must_use]
+    pub fn random_haar<R: rand::Rng>(rng: &mut R) -> Self {
+        use crate::UnitQuaternion;
+        use rand_distr::{Distribution, StandardNormal};
+
+        const MIN_NORM: f64 = 1e-10;
+        loop {
+            let a: f64 = StandardNormal.sample(rng);
+            let b: f64 = StandardNormal.sample(rng);
+            let c: f64 = StandardNormal.sample(rng);
+            let d: f64 = StandardNormal.sample(rng);
+
+            let norm = (a * a + b * b + c * c + d * d).sqrt();
+            if norm < MIN_NORM {
+                continue;
+            }
+
+            let q = UnitQuaternion::new(a / norm, b / norm, c / norm, d / norm);
+            let rot = q.to_rotation_matrix();
+            return Self {
+                matrix: Matrix3::new(
+                    rot[0][0], rot[0][1], rot[0][2], rot[1][0], rot[1][1], rot[1][2], rot[2][0],
+                    rot[2][1], rot[2][2],
+                ),
+            };
+        }
+    }
+
     /// Matrix inverse (equals transpose for orthogonal matrices)
     #[must_use]
     pub fn inverse(&self) -> Self {

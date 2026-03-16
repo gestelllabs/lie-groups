@@ -668,6 +668,27 @@ impl SU3 {
         norm < tolerance
     }
 
+    /// Random SU(3) element uniformly distributed according to Haar measure.
+    ///
+    /// Delegates to the generic [`SUN<3>::random_haar`] implementation using
+    /// the Mezzadri (2007) algorithm, then converts via [`From<SUN<3>>`].
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use lie_groups::SU3;
+    /// use rand::SeedableRng;
+    ///
+    /// let mut rng = rand::rngs::StdRng::seed_from_u64(42);
+    /// let g = SU3::random_haar(&mut rng);
+    /// assert!(g.verify_unitarity(1e-10));
+    /// ```
+    #[cfg(feature = "rand")]
+    #[must_use]
+    pub fn random_haar<R: rand::Rng>(rng: &mut R) -> Self {
+        crate::sun::SUN::<3>::random_haar(rng).into()
+    }
+
     /// Matrix inverse (equals conjugate transpose for unitary matrices)
     #[must_use]
     pub fn inverse(&self) -> Self {
