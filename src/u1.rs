@@ -540,7 +540,7 @@ impl std::iter::Product for U1 {
 
 impl<'a> std::iter::Product<&'a U1> for U1 {
     fn product<I: Iterator<Item = &'a Self>>(iter: I) -> Self {
-        iter.fold(Self::from_angle(0.0), |acc, g| &acc * g)
+        iter.fold(Self::from_angle(0.0), |acc, g| acc * g)
     }
 }
 

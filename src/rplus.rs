@@ -398,7 +398,7 @@ impl std::iter::Product for RPlus {
 
 impl<'a> std::iter::Product<&'a RPlus> for RPlus {
     fn product<I: Iterator<Item = &'a Self>>(iter: I) -> Self {
-        iter.fold(Self::from_value(1.0), |acc, g| &acc * g)
+        iter.fold(Self::from_value(1.0), |acc, g| acc * g)
     }
 }
 
