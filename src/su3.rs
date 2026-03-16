@@ -668,6 +668,27 @@ impl SU3 {
         norm < tolerance
     }
 
+    /// Random SU(3) element uniformly distributed according to Haar measure.
+    ///
+    /// Delegates to the generic `SUN<3>::random_haar` implementation using
+    /// the Mezzadri (2007) algorithm, then converts via `From<SUN<3>>`.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use lie_groups::SU3;
+    /// use rand::SeedableRng;
+    ///
+    /// let mut rng = rand::rngs::StdRng::seed_from_u64(42);
+    /// let g = SU3::random_haar(&mut rng);
+    /// assert!(g.verify_unitarity(1e-10));
+    /// ```
+    #[cfg(feature = "rand")]
+    #[must_use]
+    pub fn random_haar<R: rand::Rng>(rng: &mut R) -> Self {
+        crate::sun::SUN::<3>::random_haar(rng).into()
+    }
+
     /// Matrix inverse (equals conjugate transpose for unitary matrices)
     #[must_use]
     pub fn inverse(&self) -> Self {
@@ -979,7 +1000,12 @@ impl fmt::Display for Su3Algebra {
 impl fmt::Display for SU3 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let dist = self.distance_to_identity();
-        write!(f, "SU(3)(d={:.4})", dist)
+        let tr = self.trace();
+        if dist < 1e-12 {
+            write!(f, "SU(3)(I)")
+        } else {
+            write!(f, "SU(3)(d={:.4}, tr={:.3}{:+.3}i)", dist, tr.re, tr.im)
+        }
     }
 }
 
@@ -1000,9 +1026,28 @@ impl Mul<&SU3> for SU3 {
     }
 }
 
+impl Mul<SU3> for SU3 {
+    type Output = SU3;
+    fn mul(self, rhs: SU3) -> SU3 {
+        &self * &rhs
+    }
+}
+
 impl MulAssign<&SU3> for SU3 {
     fn mul_assign(&mut self, rhs: &SU3) {
         self.matrix = self.matrix.dot(&rhs.matrix);
+    }
+}
+
+impl std::iter::Product for SU3 {
+    fn product<I: Iterator<Item = Self>>(iter: I) -> Self {
+        iter.fold(Self::identity(), |acc, g| acc * g)
+    }
+}
+
+impl<'a> std::iter::Product<&'a SU3> for SU3 {
+    fn product<I: Iterator<Item = &'a Self>>(iter: I) -> Self {
+        iter.fold(Self::identity(), |acc, g| &acc * g)
     }
 }
 

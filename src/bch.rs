@@ -1237,8 +1237,10 @@ mod tests {
     /// BCH vs exp·log on SUN<3> with non-axis-aligned inputs.
     #[test]
     fn test_bch_vs_exp_log_sun3() {
-        let x = SunAlgebra::<3>::from_components(&[0.05, -0.03, 0.02, 0.04, -0.01, 0.03, -0.02, 0.01]);
-        let y = SunAlgebra::<3>::from_components(&[-0.02, 0.04, -0.03, 0.01, 0.05, -0.04, 0.02, -0.03]);
+        let x =
+            SunAlgebra::<3>::from_components(&[0.05, -0.03, 0.02, 0.04, -0.01, 0.03, -0.02, 0.01]);
+        let y =
+            SunAlgebra::<3>::from_components(&[-0.02, 0.04, -0.03, 0.01, 0.05, -0.04, 0.02, -0.03]);
 
         let direct = SUN::<3>::exp(&x).compose(&SUN::<3>::exp(&y));
         let bch_z = bch_fifth_order(&x, &y);
@@ -1281,8 +1283,10 @@ mod tests {
     #[test]
     fn test_bch_su3_vs_sun3_consistency() {
         // Build algebra elements via SU3, convert to SUN<3> via matrix roundtrip
-        let x_su3 = Su3Algebra::from_components(&[0.05, -0.03, 0.02, 0.04, -0.01, 0.03, -0.02, 0.01]);
-        let y_su3 = Su3Algebra::from_components(&[-0.02, 0.04, -0.03, 0.01, 0.05, -0.04, 0.02, -0.03]);
+        let x_su3 =
+            Su3Algebra::from_components(&[0.05, -0.03, 0.02, 0.04, -0.01, 0.03, -0.02, 0.01]);
+        let y_su3 =
+            Su3Algebra::from_components(&[-0.02, 0.04, -0.03, 0.01, 0.05, -0.04, 0.02, -0.03]);
 
         let x_sun = SunAlgebra::<3>::from_matrix(&x_su3.to_matrix());
         let y_sun = SunAlgebra::<3>::from_matrix(&y_su3.to_matrix());
@@ -1301,7 +1305,10 @@ mod tests {
                 assert!(
                     (m_su3[(r, c)] - m_sun[(r, c)]).norm() < 1e-12,
                     "BCH matrix disagrees at ({},{}): SU3={}, SUN<3>={}",
-                    r, c, m_su3[(r, c)], m_sun[(r, c)]
+                    r,
+                    c,
+                    m_su3[(r, c)],
+                    m_sun[(r, c)]
                 );
             }
         }

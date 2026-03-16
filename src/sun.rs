@@ -556,6 +556,146 @@ impl<const N: usize> SUN<N> {
         norm_sq.sqrt() < tolerance
     }
 
+    /// Random SU(N) element uniformly distributed according to Haar measure.
+    ///
+    /// Uses the standard algorithm: generate an N×N matrix of i.i.d. complex
+    /// Gaussians, compute the QR decomposition, and adjust phases so the
+    /// result has determinant 1.
+    ///
+    /// # Algorithm (Mezzadri 2007)
+    ///
+    /// 1. Sample Z: N×N matrix with Z_{ij} ~ N(0,1) + i·N(0,1)
+    /// 2. QR decompose Z = Q·R
+    /// 3. Adjust Q: multiply columns by sign(R_{ii}/|R_{ii}|) to make
+    ///    the decomposition unique (positive diagonal R)
+    /// 4. Fix determinant: multiply first column by det(Q)* to get det=1
+    ///
+    /// # References
+    ///
+    /// - Mezzadri, F.: "How to generate random matrices from the classical
+    ///   compact groups" (Notices AMS, 2007)
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use lie_groups::SUN;
+    /// use rand::SeedableRng;
+    ///
+    /// let mut rng = rand::rngs::StdRng::seed_from_u64(42);
+    /// let g = SUN::<3>::random_haar(&mut rng);
+    /// assert!(g.verify_unitarity(1e-10));
+    /// ```
+    #[cfg(feature = "rand")]
+    #[must_use]
+    pub fn random_haar<R: rand::Rng>(rng: &mut R) -> Self {
+        use ndarray::Array2;
+        use num_complex::Complex64;
+        use rand_distr::{Distribution, StandardNormal};
+
+        // Step 1: Generate random complex Gaussian matrix
+        let mut z = Array2::<Complex64>::zeros((N, N));
+        for i in 0..N {
+            for j in 0..N {
+                let re: f64 = StandardNormal.sample(rng);
+                let im: f64 = StandardNormal.sample(rng);
+                z[[i, j]] = Complex64::new(re, im);
+            }
+        }
+
+        // Step 2: Modified Gram-Schmidt QR decomposition
+        let mut q = z;
+        let mut diag_r = vec![Complex64::new(0.0, 0.0); N];
+        for j in 0..N {
+            // Orthogonalize column j against previous columns
+            for k in 0..j {
+                let mut dot = Complex64::new(0.0, 0.0);
+                for i in 0..N {
+                    dot += q[[i, k]].conj() * q[[i, j]];
+                }
+                // Copy column k to avoid borrow conflict
+                let col_k: Vec<Complex64> = (0..N).map(|i| q[[i, k]]).collect();
+                for i in 0..N {
+                    q[[i, j]] -= dot * col_k[i];
+                }
+            }
+            // Normalize
+            let mut norm_sq = 0.0;
+            for i in 0..N {
+                norm_sq += q[[i, j]].norm_sqr();
+            }
+            let norm = norm_sq.sqrt();
+            diag_r[j] = Complex64::new(norm, 0.0);
+            if norm > 1e-15 {
+                for i in 0..N {
+                    q[[i, j]] /= norm;
+                }
+            }
+        }
+
+        // Step 3: Adjust phases (Mezzadri correction)
+        // Multiply each column by the phase of the diagonal R element
+        // This makes the QR decomposition unique
+        for j in 0..N {
+            let r_jj = diag_r[j];
+            if r_jj.norm() > 1e-15 {
+                let phase = r_jj / r_jj.norm();
+                for i in 0..N {
+                    q[[i, j]] *= phase.conj();
+                }
+            }
+        }
+
+        // Step 4: Fix determinant to 1
+        // Compute det(Q) via product of diagonal after triangularization
+        // For small N, we use the direct formula or cofactor expansion
+        let det = Self::compute_det(&q);
+        if det.norm() > 1e-15 {
+            let phase = det / det.norm();
+            // Multiply first column by phase* to set det = 1
+            for i in 0..N {
+                q[[i, 0]] *= phase.conj();
+            }
+        }
+
+        Self { matrix: q }
+    }
+
+    /// Compute determinant of an N×N complex matrix.
+    ///
+    /// Uses LU-style elimination for general N.
+    fn compute_det(m: &Array2<Complex64>) -> Complex64 {
+        let n = m.nrows();
+        if n == 1 {
+            return m[[0, 0]];
+        }
+        if n == 2 {
+            return m[[0, 0]] * m[[1, 1]] - m[[0, 1]] * m[[1, 0]];
+        }
+        if n == 3 {
+            return m[[0, 0]] * (m[[1, 1]] * m[[2, 2]] - m[[1, 2]] * m[[2, 1]])
+                - m[[0, 1]] * (m[[1, 0]] * m[[2, 2]] - m[[1, 2]] * m[[2, 0]])
+                + m[[0, 2]] * (m[[1, 0]] * m[[2, 1]] - m[[1, 1]] * m[[2, 0]]);
+        }
+        // General case: cofactor expansion along first row
+        let mut det = Complex64::new(0.0, 0.0);
+        for j in 0..n {
+            let mut minor = Array2::<Complex64>::zeros((n - 1, n - 1));
+            for ii in 1..n {
+                let mut col = 0;
+                for jj in 0..n {
+                    if jj == j {
+                        continue;
+                    }
+                    minor[[ii - 1, col]] = m[[ii, jj]];
+                    col += 1;
+                }
+            }
+            let sign = if j % 2 == 0 { 1.0 } else { -1.0 };
+            det += Complex64::new(sign, 0.0) * m[[0, j]] * Self::compute_det(&minor);
+        }
+        det
+    }
+
     /// Compute determinant
     ///
     /// For SU(N), the determinant should be exactly 1 by definition.
@@ -774,7 +914,12 @@ impl<const N: usize> fmt::Display for SunAlgebra<N> {
 impl<const N: usize> fmt::Display for SUN<N> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let dist = self.distance_to_identity();
-        write!(f, "SU({})(d={:.4})", N, dist)
+        let tr = self.trace();
+        if dist < 1e-12 {
+            write!(f, "SU({})(I)", N)
+        } else {
+            write!(f, "SU({})(d={:.4}, tr={:.3}{:+.3}i)", N, dist, tr.re, tr.im)
+        }
     }
 }
 
@@ -795,9 +940,28 @@ impl<const N: usize> Mul<&SUN<N>> for SUN<N> {
     }
 }
 
+impl<const N: usize> Mul<SUN<N>> for SUN<N> {
+    type Output = SUN<N>;
+    fn mul(self, rhs: SUN<N>) -> SUN<N> {
+        &self * &rhs
+    }
+}
+
 impl<const N: usize> MulAssign<&SUN<N>> for SUN<N> {
     fn mul_assign(&mut self, rhs: &SUN<N>) {
         self.matrix = self.matrix.dot(&rhs.matrix);
+    }
+}
+
+impl<const N: usize> std::iter::Product for SUN<N> {
+    fn product<I: Iterator<Item = Self>>(iter: I) -> Self {
+        iter.fold(Self::identity(), |acc, g| acc * g)
+    }
+}
+
+impl<'a, const N: usize> std::iter::Product<&'a SUN<N>> for SUN<N> {
+    fn product<I: Iterator<Item = &'a Self>>(iter: I) -> Self {
+        iter.fold(Self::identity(), |acc, g| &acc * g)
     }
 }
 
@@ -1465,7 +1629,9 @@ mod tests {
 
         let x = Su3Algebra::from_components(&[0.3, -0.2, 0.1, 0.15, -0.1, 0.25, -0.15, 0.05]);
         let y = Su3Algebra::from_components(&[-0.1, 0.25, -0.15, 0.2, 0.05, -0.1, 0.3, -0.2]);
-        let g = SU3::exp(&Su3Algebra::from_components(&[0.4, -0.3, 0.2, 0.1, -0.2, 0.15, -0.1, 0.3]));
+        let g = SU3::exp(&Su3Algebra::from_components(&[
+            0.4, -0.3, 0.2, 0.1, -0.2, 0.15, -0.1, 0.3,
+        ]));
 
         let lhs = g.adjoint_action(&x.bracket(&y));
         let rhs = g.adjoint_action(&x).bracket(&g.adjoint_action(&y));
@@ -1508,7 +1674,10 @@ mod tests {
                 assert!(
                     (m_su3[(r, c)] - m_sun[(r, c)]).norm() < 1e-12,
                     "Bracket matrix disagrees at ({},{}): SU3={}, SUN<3>={}",
-                    r, c, m_su3[(r, c)], m_sun[(r, c)]
+                    r,
+                    c,
+                    m_su3[(r, c)],
+                    m_sun[(r, c)]
                 );
             }
         }
@@ -1520,7 +1689,8 @@ mod tests {
                 assert!(
                     (m_su3[(r, c)] - roundtrip[(r, c)]).norm() < 1e-12,
                     "from_matrix roundtrip failed at ({},{})",
-                    r, c
+                    r,
+                    c
                 );
             }
         }

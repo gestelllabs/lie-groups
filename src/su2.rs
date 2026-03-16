@@ -887,9 +887,29 @@ impl Mul<&SU2> for SU2 {
     }
 }
 
+impl Mul<SU2> for SU2 {
+    type Output = SU2;
+
+    fn mul(self, rhs: SU2) -> SU2 {
+        &self * &rhs
+    }
+}
+
 impl MulAssign<&SU2> for SU2 {
     fn mul_assign(&mut self, rhs: &SU2) {
         self.matrix = self.matrix.dot(&rhs.matrix);
+    }
+}
+
+impl std::iter::Product for SU2 {
+    fn product<I: Iterator<Item = Self>>(iter: I) -> Self {
+        iter.fold(Self::identity(), |acc, g| acc * g)
+    }
+}
+
+impl<'a> std::iter::Product<&'a SU2> for SU2 {
+    fn product<I: Iterator<Item = &'a Self>>(iter: I) -> Self {
+        iter.fold(Self::identity(), |acc, g| &acc * g)
     }
 }
 
@@ -938,9 +958,16 @@ impl fmt::Display for Su2Algebra {
 
 impl fmt::Display for SU2 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        // Show rotation angle and distance to identity
-        let dist = self.distance_to_identity();
-        write!(f, "SU(2)(θ={:.4})", dist)
+        let (angle, axis) = self.angle_and_axis();
+        if angle.abs() < 1e-12 {
+            write!(f, "SU(2)(I)")
+        } else {
+            write!(
+                f,
+                "SU(2)(θ={:.4}, n̂=[{:.3}, {:.3}, {:.3}])",
+                angle, axis[0], axis[1], axis[2]
+            )
+        }
     }
 }
 

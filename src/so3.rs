@@ -402,6 +402,50 @@ impl SO3 {
         (product - identity).norm() < tolerance
     }
 
+    /// Random SO(3) element uniformly distributed according to Haar measure.
+    ///
+    /// Uses the SU(2) → SO(3) double cover: sample a random quaternion on S³,
+    /// convert to rotation matrix via the adjoint representation.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use lie_groups::SO3;
+    /// use rand::SeedableRng;
+    ///
+    /// let mut rng = rand::rngs::StdRng::seed_from_u64(42);
+    /// let r = SO3::random_haar(&mut rng);
+    /// assert!(r.verify_orthogonality(1e-10));
+    /// ```
+    #[cfg(feature = "rand")]
+    #[must_use]
+    pub fn random_haar<R: rand::Rng>(rng: &mut R) -> Self {
+        use crate::UnitQuaternion;
+        use rand_distr::{Distribution, StandardNormal};
+
+        const MIN_NORM: f64 = 1e-10;
+        loop {
+            let a: f64 = StandardNormal.sample(rng);
+            let b: f64 = StandardNormal.sample(rng);
+            let c: f64 = StandardNormal.sample(rng);
+            let d: f64 = StandardNormal.sample(rng);
+
+            let norm = (a * a + b * b + c * c + d * d).sqrt();
+            if norm < MIN_NORM {
+                continue;
+            }
+
+            let q = UnitQuaternion::new(a / norm, b / norm, c / norm, d / norm);
+            let rot = q.to_rotation_matrix();
+            return Self {
+                matrix: Matrix3::new(
+                    rot[0][0], rot[0][1], rot[0][2], rot[1][0], rot[1][1], rot[1][2], rot[2][0],
+                    rot[2][1], rot[2][2],
+                ),
+            };
+        }
+    }
+
     /// Matrix inverse (equals transpose for orthogonal matrices)
     #[must_use]
     pub fn inverse(&self) -> Self {
@@ -559,8 +603,27 @@ impl fmt::Display for So3Algebra {
 
 impl fmt::Display for SO3 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let dist = self.distance_to_identity();
-        write!(f, "SO(3)(θ={:.4})", dist)
+        let angle = self.distance_to_identity();
+        if angle.abs() < 1e-12 {
+            write!(f, "SO(3)(I)")
+        } else if let Ok(log) = self.log() {
+            let c = log.components();
+            let n = (c[0] * c[0] + c[1] * c[1] + c[2] * c[2]).sqrt();
+            if n > 1e-12 {
+                write!(
+                    f,
+                    "SO(3)(θ={:.4}, n̂=[{:.3}, {:.3}, {:.3}])",
+                    angle,
+                    c[0] / n,
+                    c[1] / n,
+                    c[2] / n
+                )
+            } else {
+                write!(f, "SO(3)(θ={:.4})", angle)
+            }
+        } else {
+            write!(f, "SO(3)(θ={:.4})", angle)
+        }
     }
 }
 
@@ -581,9 +644,28 @@ impl Mul<&SO3> for SO3 {
     }
 }
 
+impl Mul<SO3> for SO3 {
+    type Output = SO3;
+    fn mul(self, rhs: SO3) -> SO3 {
+        &self * &rhs
+    }
+}
+
 impl MulAssign<&SO3> for SO3 {
     fn mul_assign(&mut self, rhs: &SO3) {
         self.matrix *= rhs.matrix;
+    }
+}
+
+impl std::iter::Product for SO3 {
+    fn product<I: Iterator<Item = Self>>(iter: I) -> Self {
+        iter.fold(Self::identity(), |acc, g| acc * g)
+    }
+}
+
+impl<'a> std::iter::Product<&'a SO3> for SO3 {
+    fn product<I: Iterator<Item = &'a Self>>(iter: I) -> Self {
+        iter.fold(Self::identity(), |acc, g| &acc * g)
     }
 }
 
