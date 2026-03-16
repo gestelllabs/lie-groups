@@ -774,7 +774,12 @@ impl<const N: usize> fmt::Display for SunAlgebra<N> {
 impl<const N: usize> fmt::Display for SUN<N> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let dist = self.distance_to_identity();
-        write!(f, "SU({})(d={:.4})", N, dist)
+        let tr = self.trace();
+        if dist < 1e-12 {
+            write!(f, "SU({})(I)", N)
+        } else {
+            write!(f, "SU({})(d={:.4}, tr={:.3}{:+.3}i)", N, dist, tr.re, tr.im)
+        }
     }
 }
 

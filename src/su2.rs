@@ -958,9 +958,16 @@ impl fmt::Display for Su2Algebra {
 
 impl fmt::Display for SU2 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        // Show rotation angle and distance to identity
-        let dist = self.distance_to_identity();
-        write!(f, "SU(2)(θ={:.4})", dist)
+        let (angle, axis) = self.angle_and_axis();
+        if angle.abs() < 1e-12 {
+            write!(f, "SU(2)(I)")
+        } else {
+            write!(
+                f,
+                "SU(2)(θ={:.4}, n̂=[{:.3}, {:.3}, {:.3}])",
+                angle, axis[0], axis[1], axis[2]
+            )
+        }
     }
 }
 

@@ -979,7 +979,12 @@ impl fmt::Display for Su3Algebra {
 impl fmt::Display for SU3 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let dist = self.distance_to_identity();
-        write!(f, "SU(3)(d={:.4})", dist)
+        let tr = self.trace();
+        if dist < 1e-12 {
+            write!(f, "SU(3)(I)")
+        } else {
+            write!(f, "SU(3)(d={:.4}, tr={:.3}{:+.3}i)", dist, tr.re, tr.im)
+        }
     }
 }
 

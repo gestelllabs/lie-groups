@@ -559,8 +559,27 @@ impl fmt::Display for So3Algebra {
 
 impl fmt::Display for SO3 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let dist = self.distance_to_identity();
-        write!(f, "SO(3)(θ={:.4})", dist)
+        let angle = self.distance_to_identity();
+        if angle.abs() < 1e-12 {
+            write!(f, "SO(3)(I)")
+        } else if let Ok(log) = self.log() {
+            let c = log.components();
+            let n = (c[0] * c[0] + c[1] * c[1] + c[2] * c[2]).sqrt();
+            if n > 1e-12 {
+                write!(
+                    f,
+                    "SO(3)(θ={:.4}, n̂=[{:.3}, {:.3}, {:.3}])",
+                    angle,
+                    c[0] / n,
+                    c[1] / n,
+                    c[2] / n
+                )
+            } else {
+                write!(f, "SO(3)(θ={:.4})", angle)
+            }
+        } else {
+            write!(f, "SO(3)(θ={:.4})", angle)
+        }
     }
 }
 
